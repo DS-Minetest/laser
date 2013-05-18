@@ -1,5 +1,5 @@
 local max_lenght = 50
-local laser_groups = {igniter=2, hot=3, not_in_creative_inventory=1}
+local laser_groups = {hot=3, not_in_creative_inventory=1}--igniter=2, 
 local laser_damage = 8*2
 local colours = {"red", "orange", "yellow", "green", "blue", "indigo", "violet", "white"}
 
@@ -40,10 +40,17 @@ local function laserstrahl(pos, name, name_v, direction, rnode, rnode2)
 		or minetest.env:get_node(p).name == rnode2 then
 			minetest.env:add_node(p, block)
 		else
-			break
+			return
 		end
 	end
 end
+
+minetest.register_node("laser:detector", {
+	description = "Laser Detector",
+	tile_images = {"laserdetector.png"},
+	groups = {cracky=3},
+	sounds = default.node_sound_leaves_defaults(),
+})
 
 local function lasernode(name, desc, texture, nodebox, selbox)
 minetest.register_node(name, {
@@ -96,21 +103,22 @@ lasernode("laser:"..colour.."_v", "vertical "..colour.." laser", "laser_"..colou
 	},}
 )
 
-minetest.register_on_punchnode(function(pos, node, puncher)
-	if puncher:get_wielded_item():get_name() == "default:stick"
-	and (node.name == 'bobblocks:'..colour..'block'
-	or node.name == 'bobblocks:'..colour..'block_off') then
+minetest.register_abm({
+	nodenames = {'bobblocks:'..colour..'block', 'bobblocks:'..colour..'block_off'},
+	interval = 0,
+	chance = 1,
+	action = function(pos)
 		local direction = get_direction('default:mese', pos)
-		if direction == 7 then
-			return
-		end
-		local p = get_direction_pos(direction, 1, pos)
-		if minetest.env:get_node(p).name == "laser:"..colour
-		or minetest.env:get_node(p).name == "laser:"..colour.."_v" then
+		if direction ~= 7 then
 			laserstrahl(pos, "air", "air", direction, "laser:"..colour, "laser:"..colour.."_v")
 		else
+			local direction = get_direction("mesecons_extrawires:mese_powered", pos)
+			if direction == 7 then
+				return
+			end
+			local p = get_direction_pos(direction, 1, pos)
 			laserstrahl(pos, "laser:"..colour, "laser:"..colour.."_v", direction, 'air', 'air')
 		end
-	end
-end)
+end,
+})
 end
