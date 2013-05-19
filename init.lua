@@ -1,4 +1,4 @@
-local max_lenght = 50
+local max_lenght = 200
 local laser_groups = {hot=3, not_in_creative_inventory=1}--igniter=2, 
 local laser_damage = 8*2
 local colours = {"red", "orange", "yellow", "green", "blue", "indigo", "violet", "white"}
@@ -31,13 +31,33 @@ local function get_direction_par(direction, name, name_v)
 	return {name=name_v}
 end
 
+local function luftstrahl(pos, direction, colour)
+	for i = 1, max_lenght, 1 do
+		p = get_direction_pos(direction, i, pos)
+		if minetest.env:get_node(p).name == "laser:detector_powered" then
+			minetest.env:add_node(p, {name="laser:detector"})
+			mesecon:receptor_off(p)
+			return
+		end
+		if minetest.env:get_node(p).name == "laser:"..colour
+		or minetest.env:get_node(p).name == "laser:"..colour.."_v" then
+			minetest.env:add_node(p, {name="air"})
+		else
+			return
+		end
+	end
+end
 
-local function laserstrahl(pos, name, name_v, direction, rnode, rnode2)
+local function laserstrahl(pos, name, name_v, direction, rnode)
 	block = get_direction_par(direction, name, name_v)
 	for i = 1, max_lenght, 1 do
 		p = get_direction_pos(direction, i, pos)
-		if minetest.env:get_node(p).name == rnode
-		or minetest.env:get_node(p).name == rnode2 then
+		if minetest.env:get_node(p).name == "laser:detector" then
+			minetest.env:add_node(p, {name="laser:detector_powered"})
+			mesecon:receptor_on(p)
+			return
+		end
+		if minetest.env:get_node(p).name == 'air' then
 			minetest.env:add_node(p, block)
 		else
 			return
@@ -45,14 +65,41 @@ local function laserstrahl(pos, name, name_v, direction, rnode, rnode2)
 	end
 end
 
+local function laserabm(pos, colour)
+	local direction = get_direction('default:mese', pos)
+	if direction ~= 7 then
+		luftstrahl(pos, direction, colour)
+	else
+		local direction = get_direction("mesecons_extrawires:mese_powered", pos)
+		if direction == 7 then
+			return
+		end
+		local p = get_direction_pos(direction, 1, pos)
+		laserstrahl(pos, "laser:"..colour, "laser:"..colour.."_v", direction)
+	end
+end
+
 minetest.register_node("laser:detector", {
 	description = "Laser Detector",
 	tile_images = {"laserdetector.png"},
-	groups = {cracky=3},
-	sounds = default.node_sound_leaves_defaults(),
+	groups = {cracky=1,level=2},
+	sounds = default.node_sound_stone_defaults(),
+	mesecons = {receptor = {
+		state = mesecon.state.off
+	}}
 })
 
-local function lasernode(name, desc, texture, nodebox, selbox)
+minetest.register_node("laser:detector_powered", {
+	tile_images = {"laserdetector.png^[brighten"},
+	groups = {cracky=1,level=2},
+	sounds = default.node_sound_stone_defaults(),
+	drop = "laser:detector",
+	mesecons = {receptor = {
+		state = mesecon.state.on
+	}}
+})
+
+local function lasernode(name, desc, texture, nodebox)
 minetest.register_node(name, {
 	description = desc,
 	tile_images = {texture},
@@ -69,56 +116,79 @@ minetest.register_node(name, {
 	groups = laser_groups,
 	drop = "",
 	node_box = nodebox,
-	selection_box = selbox,
 	sounds =  default.node_sound_leaves_defaults(),
+	-- {-0.5, -0.1, -0.1, 0.5, 0.1, 0.1}, {-0.1, -0.5, -0.1, 0.1, 0.5, 0.1},
 })
 end
 
+local LASERBOX = {
+		type = "fixed",
+		fixed = {
+			{-0.5, -0.5, 0, 0.5, 0.5, 0},
+			{-0.5, 0, -0.5, 0.5, 0, 0.5},
+		}
+	}
+
+local LASERBOXV = {
+		type = "fixed",
+		fixed = {
+			{-0.5, -0.5, 0, 0.5, 0.5, 0},
+			{0, -0.5, -0.5, 0, 0.5, 0.5},
+		}
+	}
+
+
 for _, colour in ipairs(colours) do
-lasernode("laser:"..colour, colour.." laser", "laser_"..colour..".png^[transformR90",
-	{
-	type = "fixed",
-	fixed = {
-		{-0.5, -0.5, 0, 0.5, 0.5, 0},
-		{-0.5, 0, -0.5, 0.5, 0, 0.5},
-	},},
-	{
-	type = "fixed",
-	fixed = {
-		{-0.5, -0.1, -0.1, 0.5, 0.1, 0.1},
-	},}
-)
 
-lasernode("laser:"..colour.."_v", "vertical "..colour.." laser", "laser_"..colour..".png",
-	{
-	type = "fixed",
-	fixed = {
-		{-0.5, -0.5, 0, 0.5, 0.5, 0},
-		{0, -0.5, -0.5, 0, 0.5, 0.5},
-	},},
-	{
-	type = "fixed",
-	fixed = {
-		{-0.1, -0.5, -0.1, 0.1, 0.5, 0.1},
-	},}
-)
+lasernode("laser:"..colour, colour.." laser", "laser_"..colour..".png^[transformR90", LASERBOX)
+lasernode("laser:"..colour.."_v", "vertical "..colour.." laser", "laser_"..colour..".png", LASERBOXV)
 
-minetest.register_abm({
-	nodenames = {'bobblocks:'..colour..'block', 'bobblocks:'..colour..'block_off'},
-	interval = 0,
-	chance = 1,
-	action = function(pos)
-		local direction = get_direction('default:mese', pos)
-		if direction ~= 7 then
-			laserstrahl(pos, "air", "air", direction, "laser:"..colour, "laser:"..colour.."_v")
-		else
-			local direction = get_direction("mesecons_extrawires:mese_powered", pos)
-			if direction == 7 then
-				return
-			end
-			local p = get_direction_pos(direction, 1, pos)
-			laserstrahl(pos, "laser:"..colour, "laser:"..colour.."_v", direction, 'air', 'air')
-		end
-end,
+
+--Bob Blocks
+
+minetest.register_node(":bobblocks:"..colour.."block", {
+	description = colour.." Block",
+	drawtype = "glasslike",
+	tile_images = {"bobblocks_"..colour.."block.png"},
+	inventory_image = minetest.inventorycube("bobblocks_"..colour.."block.png"),
+	paramtype = "light",
+	sunlight_propagates = true,
+	is_ground_content = true,
+	sounds = default.node_sound_glass_defaults(),
+	light_source = LIGHT_MAX-0,
+	groups = {snappy=2,cracky=3,oddly_breakable_by_hand=3},
+	mesecons = {conductor={
+			state = mesecon.state.on,
+			offstate = "bobblocks:"..colour.."block_off"
+		},
+	effector = {
+		action_on = function (pos)
+			laserabm(pos, colour)
+		end,
+		action_off = function (pos)
+			laserabm(pos, colour)
+		end,
+	}}
+})
+
+minetest.register_node(":bobblocks:"..colour.."block_off", {
+	description = colour.." Block",
+	tile_images = {"bobblocks_"..colour.."block.png"},
+	is_ground_content = true,
+	alpha = WATER_ALPHA,
+	groups = {snappy=2,cracky=3,oddly_breakable_by_hand=3,not_in_creative_inventory=1},
+	drop = 'bobblocks:'..colour..'block',
+	mesecons = {conductor={
+			state = mesecon.state.off,
+			onstate = "bobblocks:"..colour.."block"
+		},
+	effector = {
+		action_on = function (pos)
+			laserabm(pos, colour)
+		end,
+		action_off = function (pos)
+			laserabm(pos, colour)
+		end,
+	}}
 })
 end
