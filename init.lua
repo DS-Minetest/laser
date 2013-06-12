@@ -3,6 +3,15 @@ local laser_groups = {hot=3, not_in_creative_inventory=1}--igniter=2,
 local laser_damage = 8*2
 local colours = {"red", "orange", "yellow", "green", "blue", "indigo", "violet", "white"}
 
+local function invert_direction(dir)
+	if dir == 3 then return 1 end
+	if dir == 4 then return 2 end
+	if dir == 1 then return 3 end
+	if dir == 2 then return 4 end
+	if dir == 6 then return 5 end
+	if dir == 5 then return 6 end
+	return 7
+end
 
 local function get_direction(name, pos)
 	if minetest.env:get_node({x=pos.x-1, y=pos.y, z=pos.z}).name == name then return 1 end
@@ -11,6 +20,28 @@ local function get_direction(name, pos)
 	if minetest.env:get_node({x=pos.x, y=pos.y, z=pos.z+1}).name == name then return 4 end
 	if minetest.env:get_node({x=pos.x, y=pos.y-1, z=pos.z}).name == name then return 5 end
 	if minetest.env:get_node({x=pos.x, y=pos.y+1, z=pos.z}).name == name then return 6 end
+	return 7
+end
+
+local function get_direction_laser(name, namev, pos)
+	if minetest.env:get_node({x=pos.x-1, y=pos.y, z=pos.z}).name == name
+	and minetest.env:get_node({x=pos.x-1, y=pos.y, z=pos.z}).param2 == 0 then
+		return 1
+	end
+	if minetest.env:get_node({x=pos.x, y=pos.y, z=pos.z-1}).name == name
+	and minetest.env:get_node({x=pos.x, y=pos.y, z=pos.z-1}).param2 == 1 then
+		return 2
+	end
+	if minetest.env:get_node({x=pos.x+1, y=pos.y, z=pos.z}).name == name
+	and minetest.env:get_node({x=pos.x+1, y=pos.y, z=pos.z}).param2 == 0 then
+		return 3
+	end
+	if minetest.env:get_node({x=pos.x, y=pos.y, z=pos.z+1}).name == name
+	and minetest.env:get_node({x=pos.x, y=pos.y, z=pos.z+1}).param2 == 1 then
+		return 4
+	end
+	if minetest.env:get_node({x=pos.x, y=pos.y-1, z=pos.z}).name == namev then return 5 end
+	if minetest.env:get_node({x=pos.x, y=pos.y+1, z=pos.z}).name == namev then return 6 end
 	return 7
 end
 
@@ -41,7 +72,7 @@ local function luftstrahl(pos, direction, colour)
 		end
 		if minetest.env:get_node(p).name == "laser:"..colour
 		or minetest.env:get_node(p).name == "laser:"..colour.."_v" then
-			minetest.env:add_node(p, {name="air"})
+			minetest.env:remove_node(p)
 		else
 			return
 		end
@@ -137,6 +168,12 @@ local LASERBOXV = {
 		}
 	}
 
+local function after_dig_bob(pos, colour)
+	local direction = invert_direction(get_direction_laser("laser:"..colour, "laser:"..colour.."_v", pos))
+	if direction ~= 7 then
+		luftstrahl(pos, direction, colour)
+	end
+end
 
 for _, colour in ipairs(colours) do
 
@@ -157,6 +194,9 @@ minetest.register_node(":bobblocks:"..colour.."block", {
 	sounds = default.node_sound_glass_defaults(),
 	light_source = LIGHT_MAX-0,
 	groups = {snappy=2,cracky=3,oddly_breakable_by_hand=3},
+	after_dig_node = function(pos)
+		after_dig_bob(pos, colour)
+	end,
 	mesecons = {conductor={
 			state = mesecon.state.on,
 			offstate = "bobblocks:"..colour.."block_off"
@@ -178,6 +218,9 @@ minetest.register_node(":bobblocks:"..colour.."block_off", {
 	alpha = WATER_ALPHA,
 	groups = {snappy=2,cracky=3,oddly_breakable_by_hand=3,not_in_creative_inventory=1},
 	drop = 'bobblocks:'..colour..'block',
+	after_dig_node = function(pos)
+		after_dig_bob(pos, colour)
+	end,
 	mesecons = {conductor={
 			state = mesecon.state.off,
 			onstate = "bobblocks:"..colour.."block"
