@@ -170,8 +170,9 @@ local LASERBOXV = {
 
 local function after_dig_bob(pos, colour)
 	local direction = invert_direction(get_direction_laser("laser:"..colour, "laser:"..colour.."_v", pos))
-	if direction ~= 7 then
+	while direction ~= 7 do
 		luftstrahl(pos, direction, colour)
+		direction = invert_direction(get_direction_laser("laser:"..colour, "laser:"..colour.."_v", pos))
 	end
 end
 
