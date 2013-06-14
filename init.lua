@@ -236,3 +236,4 @@ minetest.register_node(":bobblocks:"..colour.."block_off", {
 	}}
 })
 end
+print("[laser] loaded")
