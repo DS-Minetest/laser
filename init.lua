@@ -112,7 +112,7 @@ end
 
 minetest.register_node("laser:detector", {
 	description = "Laser Detector",
-	tile_images = {"laserdetector.png"},
+	tiles = {"laserdetector.png"},
 	groups = {cracky=1,level=2},
 	sounds = default.node_sound_stone_defaults(),
 	mesecons = {receptor = {
@@ -121,7 +121,7 @@ minetest.register_node("laser:detector", {
 })
 
 minetest.register_node("laser:detector_powered", {
-	tile_images = {"laserdetector.png^[brighten"},
+	tiles = {"laserdetector.png^[brighten"},
 	groups = {cracky=1,level=2},
 	sounds = default.node_sound_stone_defaults(),
 	drop = "laser:detector",
@@ -133,7 +133,7 @@ minetest.register_node("laser:detector_powered", {
 local function lasernode(name, desc, texture, nodebox)
 minetest.register_node(name, {
 	description = desc,
-	tile_images = {texture},
+	tiles = {texture},
 	light_source = 15,
 	sunlight_propagates = true,
 	walkable = false,
@@ -187,7 +187,7 @@ lasernode("laser:"..colour.."_v", "vertical "..colour.." laser", "laser_"..colou
 minetest.register_node(":bobblocks:"..colour.."block", {
 	description = colour.." Block",
 	drawtype = "glasslike",
-	tile_images = {"bobblocks_"..colour.."block.png"},
+	tiles = {"bobblocks_"..colour.."block.png"},
 	inventory_image = minetest.inventorycube("bobblocks_"..colour.."block.png"),
 	paramtype = "light",
 	sunlight_propagates = true,
@@ -214,7 +214,7 @@ minetest.register_node(":bobblocks:"..colour.."block", {
 
 minetest.register_node(":bobblocks:"..colour.."block_off", {
 	description = colour.." Block",
-	tile_images = {"bobblocks_"..colour.."block.png"},
+	tiles = {"bobblocks_"..colour.."block.png"},
 	is_ground_content = true,
 	alpha = WATER_ALPHA,
 	groups = {snappy=2,cracky=3,oddly_breakable_by_hand=3,not_in_creative_inventory=1},
