@@ -14,34 +14,34 @@ local function invert_direction(dir)
 end
 
 local function get_direction(name, pos)
-	if minetest.env:get_node({x=pos.x-1, y=pos.y, z=pos.z}).name == name then return 1 end
-	if minetest.env:get_node({x=pos.x, y=pos.y, z=pos.z-1}).name == name then return 2 end
-	if minetest.env:get_node({x=pos.x+1, y=pos.y, z=pos.z}).name == name then return 3 end
-	if minetest.env:get_node({x=pos.x, y=pos.y, z=pos.z+1}).name == name then return 4 end
-	if minetest.env:get_node({x=pos.x, y=pos.y-1, z=pos.z}).name == name then return 5 end
-	if minetest.env:get_node({x=pos.x, y=pos.y+1, z=pos.z}).name == name then return 6 end
+	if minetest.get_node({x=pos.x-1, y=pos.y, z=pos.z}).name == name then return 1 end
+	if minetest.get_node({x=pos.x, y=pos.y, z=pos.z-1}).name == name then return 2 end
+	if minetest.get_node({x=pos.x+1, y=pos.y, z=pos.z}).name == name then return 3 end
+	if minetest.get_node({x=pos.x, y=pos.y, z=pos.z+1}).name == name then return 4 end
+	if minetest.get_node({x=pos.x, y=pos.y-1, z=pos.z}).name == name then return 5 end
+	if minetest.get_node({x=pos.x, y=pos.y+1, z=pos.z}).name == name then return 6 end
 	return 7
 end
 
 local function get_direction_laser(name, namev, pos)
-	if minetest.env:get_node({x=pos.x-1, y=pos.y, z=pos.z}).name == name
-	and minetest.env:get_node({x=pos.x-1, y=pos.y, z=pos.z}).param2 == 0 then
+	if minetest.get_node({x=pos.x-1, y=pos.y, z=pos.z}).name == name
+	and minetest.get_node({x=pos.x-1, y=pos.y, z=pos.z}).param2 == 0 then
 		return 1
 	end
-	if minetest.env:get_node({x=pos.x, y=pos.y, z=pos.z-1}).name == name
-	and minetest.env:get_node({x=pos.x, y=pos.y, z=pos.z-1}).param2 == 1 then
+	if minetest.get_node({x=pos.x, y=pos.y, z=pos.z-1}).name == name
+	and minetest.get_node({x=pos.x, y=pos.y, z=pos.z-1}).param2 == 1 then
 		return 2
 	end
-	if minetest.env:get_node({x=pos.x+1, y=pos.y, z=pos.z}).name == name
-	and minetest.env:get_node({x=pos.x+1, y=pos.y, z=pos.z}).param2 == 0 then
+	if minetest.get_node({x=pos.x+1, y=pos.y, z=pos.z}).name == name
+	and minetest.get_node({x=pos.x+1, y=pos.y, z=pos.z}).param2 == 0 then
 		return 3
 	end
-	if minetest.env:get_node({x=pos.x, y=pos.y, z=pos.z+1}).name == name
-	and minetest.env:get_node({x=pos.x, y=pos.y, z=pos.z+1}).param2 == 1 then
+	if minetest.get_node({x=pos.x, y=pos.y, z=pos.z+1}).name == name
+	and minetest.get_node({x=pos.x, y=pos.y, z=pos.z+1}).param2 == 1 then
 		return 4
 	end
-	if minetest.env:get_node({x=pos.x, y=pos.y-1, z=pos.z}).name == namev then return 5 end
-	if minetest.env:get_node({x=pos.x, y=pos.y+1, z=pos.z}).name == namev then return 6 end
+	if minetest.get_node({x=pos.x, y=pos.y-1, z=pos.z}).name == namev then return 5 end
+	if minetest.get_node({x=pos.x, y=pos.y+1, z=pos.z}).name == namev then return 6 end
 	return 7
 end
 
@@ -65,14 +65,14 @@ end
 local function luftstrahl(pos, direction, colour)
 	for i = 1, max_lenght, 1 do
 		p = get_direction_pos(direction, i, pos)
-		if minetest.env:get_node(p).name == "laser:detector_powered" then
-			minetest.env:add_node(p, {name="laser:detector"})
+		if minetest.get_node(p).name == "laser:detector_powered" then
+			minetest.add_node(p, {name="laser:detector"})
 			mesecon:receptor_off(p)
 			return
 		end
-		if minetest.env:get_node(p).name == "laser:"..colour
-		or minetest.env:get_node(p).name == "laser:"..colour.."_v" then
-			minetest.env:remove_node(p)
+		if minetest.get_node(p).name == "laser:"..colour
+		or minetest.get_node(p).name == "laser:"..colour.."_v" then
+			minetest.remove_node(p)
 		else
 			return
 		end
@@ -83,13 +83,13 @@ local function laserstrahl(pos, name, name_v, direction, rnode)
 	block = get_direction_par(direction, name, name_v)
 	for i = 1, max_lenght, 1 do
 		p = get_direction_pos(direction, i, pos)
-		if minetest.env:get_node(p).name == "laser:detector" then
-			minetest.env:add_node(p, {name="laser:detector_powered"})
+		if minetest.get_node(p).name == "laser:detector" then
+			minetest.add_node(p, {name="laser:detector_powered"})
 			mesecon:receptor_on(p)
 			return
 		end
-		if minetest.env:get_node(p).name == 'air' then
-			minetest.env:add_node(p, block)
+		if minetest.get_node(p).name == 'air' then
+			minetest.add_node(p, block)
 		else
 			return
 		end
@@ -182,58 +182,46 @@ lasernode("laser:"..colour, colour.." laser", "laser_"..colour..".png^[transform
 lasernode("laser:"..colour.."_v", "vertical "..colour.." laser", "laser_"..colour..".png", LASERBOXV)
 
 
---Bob Blocks
+--Bob Blocks (redefinitions)
 
-minetest.register_node(":bobblocks:"..colour.."block", {
-	description = colour.." Block",
-	drawtype = "glasslike",
-	tiles = {"bobblocks_"..colour.."block.png"},
-	inventory_image = minetest.inventorycube("bobblocks_"..colour.."block.png"),
-	paramtype = "light",
-	sunlight_propagates = true,
-	is_ground_content = true,
-	sounds = default.node_sound_glass_defaults(),
-	light_source = LIGHT_MAX-0,
-	groups = {snappy=2,cracky=3,oddly_breakable_by_hand=3},
-	after_dig_node = function(pos)
-		after_dig_bob(pos, colour)
-	end,
-	mesecons = {conductor={
-			state = mesecon.state.on,
-			offstate = "bobblocks:"..colour.."block_off"
-		},
-	effector = {
-		action_on = function (pos)
-			laserabm(pos, colour)
-		end,
-		action_off = function (pos)
-			laserabm(pos, colour)
-		end,
-	}}
-})
-
-minetest.register_node(":bobblocks:"..colour.."block_off", {
-	description = colour.." Block",
-	tiles = {"bobblocks_"..colour.."block.png"},
-	is_ground_content = true,
-	alpha = WATER_ALPHA,
-	groups = {snappy=2,cracky=3,oddly_breakable_by_hand=3,not_in_creative_inventory=1},
-	drop = 'bobblocks:'..colour..'block',
-	after_dig_node = function(pos)
-		after_dig_bob(pos, colour)
-	end,
-	mesecons = {conductor={
-			state = mesecon.state.off,
-			onstate = "bobblocks:"..colour.."block"
-		},
-	effector = {
-		action_on = function (pos)
-			laserabm(pos, colour)
-		end,
-		action_off = function (pos)
-			laserabm(pos, colour)
-		end,
-	}}
-})
+local tmp = minetest.registered_nodes["bobblocks:"..colour.."block"]
+tmp.after_dig_node = function(pos)
+	after_dig_bob(pos, colour)
 end
+tmp.mesecons = {conductor = {
+		state = mesecon.state.on,
+		offstate = "bobblocks:"..colour.."block_off"
+	},
+	effector = {
+		action_on = function(pos)
+			laserabm(pos, colour)
+		end,
+		action_off = function(pos)
+			laserabm(pos, colour)
+		end,
+	}
+}
+minetest.register_node(":bobblocks:"..colour.."block", tmp)
+
+local tmp = minetest.registered_nodes["bobblocks:"..colour.."block_off"]
+tmp.after_dig_node = function(pos)
+	after_dig_bob(pos, colour)
+end
+tmp.mesecons = {conductor = {
+		state = mesecon.state.off,
+		onstate = "bobblocks:"..colour.."block"
+	},
+	effector = {
+		action_on = function(pos)
+			laserabm(pos, colour)
+		end,
+		action_off = function(pos)
+			laserabm(pos, colour)
+		end,
+	}
+}
+minetest.register_node(":bobblocks:"..colour.."block_off", tmp)
+
+end
+
 print("[laser] loaded")
