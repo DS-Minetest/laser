@@ -31,16 +31,19 @@ local function invert_direction(dir)
 	end
 end
 
+local dirpos_list = {
+	{x= 1, y= 0, z= 0},
+	{x= 0, y= 0, z= 1},
+	{x=-1, y= 0, z= 0},
+	{x= 0, y= 0, z=-1},
+	{x= 0, y= 1, z= 0},
+	{x= 0, y=-1, z= 0}
+}
+
 local function get_direction(name, pos)
-	for n,pos in ipairs({
-		{x=pos.x-1, y=pos.y, z=pos.z},
-		{x=pos.x, y=pos.y, z=pos.z-1},
-		{x=pos.x+1, y=pos.y, z=pos.z},
-		{x=pos.x, y=pos.y, z=pos.z+1},
-		{x=pos.x, y=pos.y-1, z=pos.z},
-		{x=pos.x, y=pos.y+1, z=pos.z}
-	}) do
-		if minetest.get_node(pos).name == name then
+	for n,i in ipairs(dirpos_list) do
+		local p = vector.add(pos, vector.multiply(i, -1))
+		if minetest.get_node(p).name == name then
 			return n
 		end
 	end
@@ -72,15 +75,6 @@ local function get_directions_laser(name, namev, pos)
 	end
 	return tab
 end
-
-local dirpos_list = {
-	{x= 1, y= 0, z= 0},
-	{x= 0, y= 0, z= 1},
-	{x=-1, y= 0, z= 0},
-	{x= 0, y= 0, z=-1},
-	{x= 0, y= 1, z= 0},
-	{x= 0, y=-1, z= 0}
-}
 
 local function get_direction_par(direction, name, name_v)
 	if direction == 1
