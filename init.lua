@@ -46,7 +46,8 @@ local function get_direction(name, pos)
 	end
 end
 
-local function get_direction_laser(name, namev, pos)
+local function get_directions_laser(name, namev, pos)
+	local tab, num = {}, 1
 	local dir = get_direction(name, pos)
 	for n,i in ipairs({
 		{{x=pos.x-1, z=pos.z}, 0},
@@ -57,15 +58,19 @@ local function get_direction_laser(name, namev, pos)
 		local pos = {x=i[1].x, y=pos.y, z=i[1].z}
 		if dir == n
 		and minetest.get_node(pos).param2 == i[2] then
-			return n
+			tab[num] = invert_direction(n)
+			num = num+1
 		end
 	end
 	if minetest.get_node({x=pos.x, y=pos.y-1, z=pos.z}).name == namev then
-		return 5
+		tab[num] = 6
+		num = num+1
 	end
 	if minetest.get_node({x=pos.x, y=pos.y+1, z=pos.z}).name == namev then
-		return 6
+		tab[num] = 5
+		num = num+1
 	end
+	return tab
 end
 
 local dirpos_list = {
@@ -121,7 +126,7 @@ local function luftstrahl(pos, dir, colour)
 			return
 		end
 		if l == 1 then
-			minetest.remove_node(p)
+			minetest.remove_node(vector.add(pos, addp))
 			return
 		end
 		local p1 = vector.add(pos, addp)
@@ -171,7 +176,7 @@ local function laserstrahl(pos, name, name_v, dir)
 			return
 		end
 		if l == 1 then
-			minetest.add_node(p, block)
+			minetest.add_node(vector.add(pos, addp), block)
 			return
 		end
 		local p1 = vector.add(pos, addp)
@@ -202,6 +207,29 @@ local function laserabm(pos, colour)
 		local dir = get_direction("mesecons_extrawires:mese_powered", pos)
 		if dir then
 			laserstrahl(pos, "laser:"..colour, "laser:"..colour.."_v", dir)
+		end
+	end
+end
+
+function laser_continue_laser(pos) --untested
+	for _,colour in ipairs(colours) do
+		local name = "laser:"..colour
+		local dir = get_direction(name, pos)
+		if not dir then
+			name = "laser:"..colour.."_v"
+			dir = get_direction(name, pos)
+		end
+		if dir then
+			local p2
+			for _,i in ipairs(dirpos_list) do
+				local p = vector.add(pos, i)
+				local nodename = minetest.get_node(p).name
+				if nodename == name then
+					break
+				end
+			end
+			laserstrahl(p, "laser:"..colour, "laser:"..colour.."_v", dir)
+			return
 		end
 	end
 end
@@ -273,10 +301,9 @@ local LASERBOXV = {
 	}
 
 local function after_dig_bob(pos, colour)
-	local direction = invert_direction(get_direction_laser("laser:"..colour, "laser:"..colour.."_v", pos))
-	while direction do
-		luftstrahl(pos, direction, colour)
-		direction = invert_direction(get_direction_laser("laser:"..colour, "laser:"..colour.."_v", pos))
+	local dirs = get_directions_laser("laser:"..colour, "laser:"..colour.."_v", pos)
+	for _,dir in ipairs(dirs) do
+		luftstrahl(pos, dir, colour)
 	end
 end
 
