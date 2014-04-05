@@ -68,28 +68,6 @@ local function get_direction_laser(name, namev, pos)
 	end
 end
 
-
-local function get_direction_pos(direction, i, pos)
-	if direction == 1 then
-		return {x=pos.x+i, y=pos.y, z=pos.z}
-	end
-	if direction == 2 then
-		return {x=pos.x, y=pos.y, z=pos.z+i}
-	end
-	if direction == 3 then
-		return {x=pos.x-i, y=pos.y, z=pos.z}
-	end
-	if direction == 4 then
-		return {x=pos.x, y=pos.y, z=pos.z-i}
-	end
-	if direction == 5 then
-		return {x=pos.x, y=pos.y+i, z=pos.z}
-	end
-	if direction == 6 then
-		return {x=pos.x, y=pos.y-i, z=pos.z}
-	end
-end
-
 local dirpos_list = {
 	{x= 1, y= 0, z= 0},
 	{x= 0, y= 0, z= 1},
@@ -118,13 +96,20 @@ local function luftstrahl(pos, dir, colour)
 	local l = 0
 	for i = 1, max_lenght do
 		p = vector.add(p, addp)
-		if minetest.get_node(p).name == "laser:detector_powered" then
-			minetest.add_node(p, {name="laser:detector"})
-			mesecon:receptor_off(p)
-			break
+		local nodename = minetest.get_node(p).name
+
+		local laserfcts = minetest.registered_nodes[nodename].laser
+		local func
+		if laserfcts then
+			func = laserfcts.disable
 		end
-		if minetest.get_node(p).name == "laser:"..colour
-		or minetest.get_node(p).name == "laser:"..colour.."_v" then
+		if func then
+			if not func(p, dir, colour) then
+				break
+			end
+		end
+		if nodename == "laser:"..colour
+		or nodename == "laser:"..colour.."_v" then
 			l = l+1
 		else
 			break
@@ -154,7 +139,7 @@ local function luftstrahl(pos, dir, colour)
 	end, {t1, l, addp, pos, p})
 end
 
-local function laserstrahl(pos, name, name_v, dir, rnode)
+local function laserstrahl(pos, name, name_v, dir)
 	local t1 = os.clock()
 	local addp = dirpos_list[dir]
 	local p = pos
@@ -163,12 +148,18 @@ local function laserstrahl(pos, name, name_v, dir, rnode)
 	for i = 1, max_lenght, 1 do
 		p = vector.add(p, addp)
 		local nodename = minetest.get_node(p).name
-		if minetest.get_node(p).name == "laser:detector" then
-			minetest.add_node(p, {name="laser:detector_powered"})
-			mesecon:receptor_on(p)
-			break
+
+		local laserfcts = minetest.registered_nodes[nodename].laser
+		local func
+		if laserfcts then
+			func = laserfcts.enable
 		end
-		if minetest.get_node(p).name == 'air' then
+		if func then
+			if not func(p, dir, {name, name_v}) then
+				break
+			end
+		end
+		if nodename == 'air' then
 			l = l+1
 		else
 			break
@@ -195,8 +186,8 @@ local function laserstrahl(pos, name, name_v, dir, rnode)
 		local nodes = manip:get_data()
 		local param2s = manip:get_param2_data()
 		for i in area:iterp(p1, p2) do
-			nodes[i] = c_cur
-			param2s[i] = par2 --I need an explanation: sometimes the needed param2 is fetched automatically
+			nodes[i] = c_cur	--I need an explanation: sometimes the needed param2 is
+			param2s[i] = par2	--fetched automatically but only in the current chunk
 		end
 		manip:set_param2_data(param2s)
 		set_vm_data(manip, nodes, pos, t1, "laser set")
@@ -204,16 +195,14 @@ local function laserstrahl(pos, name, name_v, dir, rnode)
 end
 
 local function laserabm(pos, colour)
-	local direction = get_direction('default:mese', pos)
-	if direction then
-		luftstrahl(pos, direction, colour)
+	local dir = get_direction('default:mese', pos)
+	if dir then
+		luftstrahl(pos, dir, colour)
 	else
-		local direction = get_direction("mesecons_extrawires:mese_powered", pos)
-		if not direction then
-			return
+		local dir = get_direction("mesecons_extrawires:mese_powered", pos)
+		if dir then
+			laserstrahl(pos, "laser:"..colour, "laser:"..colour.."_v", dir)
 		end
-		local p = get_direction_pos(direction, 1, pos)
-		laserstrahl(pos, "laser:"..colour, "laser:"..colour.."_v", direction)
 	end
 end
 
@@ -223,6 +212,12 @@ minetest.register_node("laser:detector", {
 	mesecons = {receptor ={state = mesecon.state.off}},
 	groups = {cracky=1,level=2},
 	sounds = default.node_sound_stone_defaults(),
+	laser = {
+		enable = function(pos)
+			mesecon:receptor_on(pos) --seems to work in this order
+			minetest.add_node(pos, {name="laser:detector_powered"})
+		end
+	}
 })
 
 minetest.register_node("laser:detector_powered", {
@@ -231,6 +226,12 @@ minetest.register_node("laser:detector_powered", {
 	drop = "laser:detector",
 	groups = {cracky=1,level=2},
 	sounds = default.node_sound_stone_defaults(),
+	laser = {
+		disable = function(pos) --maybe disabling works slower
+			minetest.add_node(pos, {name="laser:detector"})
+			mesecon:receptor_off(pos)
+		end
+	}
 })
 
 local function lasernode(name, desc, texture, nodebox)
