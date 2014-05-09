@@ -201,6 +201,7 @@ local function laserabm(pos, colour)
 		local dir = get_direction("mesecons_extrawires:mese_powered", pos)
 		if dir then
 			laserstrahl(pos, "laser:"..colour, "laser:"..colour.."_v", dir)
+			--minetest.sound_play("laser", {pos = pos,  gain = 1})
 		end
 	end
 end
