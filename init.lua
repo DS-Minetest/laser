@@ -229,34 +229,6 @@ function laser_continue_laser(pos) --untested
 	end
 end
 
-minetest.register_node("laser:detector", {
-	description = "Laser Detector",
-	tiles = {"laserdetector.png"},
-	mesecons = {receptor ={state = mesecon.state.off}},
-	groups = {cracky=1,level=2},
-	sounds = default.node_sound_stone_defaults(),
-	laser = {
-		enable = function(pos)
-			mesecon:receptor_on(pos) --seems to work in this order
-			minetest.add_node(pos, {name="laser:detector_powered"})
-		end
-	}
-})
-
-minetest.register_node("laser:detector_powered", {
-	tiles = {"laserdetector.png^[brighten"},
-	mesecons = {receptor ={state = mesecon.state.on}},
-	drop = "laser:detector",
-	groups = {cracky=1,level=2},
-	sounds = default.node_sound_stone_defaults(),
-	laser = {
-		disable = function(pos) --maybe disabling works slower
-			minetest.add_node(pos, {name="laser:detector"})
-			mesecon:receptor_off(pos)
-		end
-	}
-})
-
 local function lasernode(name, desc, texture, nodebox)
 minetest.register_node(name, {
 	description = desc,
@@ -382,5 +354,39 @@ for _, colour in ipairs(colours) do
 	}
 	minetest.register_node(":bobblocks:"..colour.."block_off", block_table)
 end
+
+local function is_touched_by_laser(pos)
+	--function here
+end
+
+minetest.register_node("laser:detector", {
+	description = "Laser Detector",
+	tiles = {"laserdetector.png"},
+	mesecons = {receptor ={state = mesecon.state.off}},
+	groups = {cracky=1,level=2},
+	sounds = default.node_sound_stone_defaults(),
+	paramtype2 = "facedir",
+	laser = {
+		enable = function(pos)
+			mesecon:receptor_on(pos) --seems to work in this order
+			minetest.add_node(pos, {name="laser:detector_powered"})
+		end
+	}
+})
+
+minetest.register_node("laser:detector_powered", {
+	tiles = {"laserdetector.png^[brighten"},
+	mesecons = {receptor ={state = mesecon.state.on}},
+	drop = "laser:detector",
+	groups = {cracky=1,level=2},
+	sounds = default.node_sound_stone_defaults(),
+	paramtype2 = "facedir",
+	laser = {
+		disable = function(pos) --maybe disabling works slower
+			minetest.add_node(pos, {name="laser:detector"})
+			mesecon:receptor_off(pos)
+		end
+	}
+})
 
 print(string.format("[laser] loaded after ca. %.2fs", os.clock() - load_time_start))
