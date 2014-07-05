@@ -4,6 +4,15 @@ local laser_groups = {hot=3, not_in_creative_inventory=1}--igniter=2,
 local laser_damage = 8*2
 local colours = {"red", "orange", "yellow", "green", "blue", "indigo", "violet", "white"}
 
+local function table_contains(t, v)
+	for _,i in pairs(t) do
+		if i == v then
+			return true
+		end
+	end
+	return false
+end
+
 local c_air = minetest.get_content_id("air")
 
 local function r_area(manip, p1, p2)
@@ -20,16 +29,7 @@ local function set_vm_data(manip, nodes, pos, t1, name)
 	print(string.format("[laser] map updated after ca. %.2fs", os.clock() - t1))
 end
 
-local function invert_direction(dir)
-	for _,i in ipairs({{1, 3}, {2, 4}, {5, 6}}) do
-		if dir == i[1] then
-			return i[2]
-		end
-		if dir == i[2] then
-			return i[1]
-		end
-	end
-end
+local dir_tab = {3, 4, 1, 2, 6, 5}
 
 local dirpos_list = {
 	{x= 1, y= 0, z= 0},
@@ -49,6 +49,18 @@ local function get_direction(name, pos)
 	end
 end
 
+local function get_directions(name, pos)
+	local tab, num = {}, 1
+	for n,i in ipairs(dirpos_list) do
+		local p = vector.add(pos, vector.multiply(i, -1))
+		if minetest.get_node(p).name == name then
+			tab[num] = n
+			num = num+1
+		end
+	end
+	return tab
+end
+
 local function get_directions_laser(name, namev, pos)
 	local tab, num = {}, 1
 	local dir = get_direction(name, pos)
@@ -61,7 +73,34 @@ local function get_directions_laser(name, namev, pos)
 		local pos = {x=i[1].x, y=pos.y, z=i[1].z}
 		if dir == n
 		and minetest.get_node(pos).param2 == i[2] then
-			tab[num] = invert_direction(n)
+			tab[num] = dir_tab[n]
+			num = num+1
+		end
+	end
+	if minetest.get_node({x=pos.x, y=pos.y-1, z=pos.z}).name == namev then
+		tab[num] = 6
+		num = num+1
+	end
+	if minetest.get_node({x=pos.x, y=pos.y+1, z=pos.z}).name == namev then
+		tab[num] = 5
+		num = num+1
+	end
+	return tab
+end
+
+local function get_directions_lasers(name, namev, pos)
+	local tab, num = {}, 1
+	local dirs = get_directions(name, pos)
+	for n,i in ipairs({
+		{{x=pos.x-1, z=pos.z}, 0},
+		{{x=pos.x, z=pos.z-1}, 1},
+		{{x=pos.x+1, z=pos.z}, 0},
+		{{x=pos.x, z=pos.z+1}, 1}
+	}) do
+		local pos = {x=i[1].x, y=pos.y, z=i[1].z}
+		if table_contains(dirs, n)
+		and minetest.get_node(pos).param2 == i[2] then
+			tab[num] = dir_tab[n]
 			num = num+1
 		end
 	end
@@ -355,8 +394,19 @@ for _, colour in ipairs(colours) do
 	minetest.register_node(":bobblocks:"..colour.."block_off", block_table)
 end
 
-local function is_touched_by_laser(pos)
-	--function here
+local function is_touched_by_laser(pos, dir)
+	dir = dir_tab[dir]
+	for _,colour in pairs(colours) do
+		local lasers = get_directions_lasers("laser:"..colour, "laser:"..colour.."_v", pos)
+		if lasers[1] then
+			for _,dir2 in pairs(lasers) do
+				if dir ~= dir2 then
+					return true
+				end
+			end
+		end
+	end
+	return false
 end
 
 minetest.register_node("laser:detector", {
@@ -382,7 +432,10 @@ minetest.register_node("laser:detector_powered", {
 	sounds = default.node_sound_stone_defaults(),
 	paramtype2 = "facedir",
 	laser = {
-		disable = function(pos) --maybe disabling works slower
+		disable = function(pos, dir) --maybe disabling works slower
+			if is_touched_by_laser(pos, dir) then
+				return
+			end
 			minetest.add_node(pos, {name="laser:detector"})
 			mesecon:receptor_off(pos)
 		end
