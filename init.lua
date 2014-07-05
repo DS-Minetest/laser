@@ -40,30 +40,31 @@ local dirpos_list = {
 	{x= 0, y=-1, z= 0}
 }
 
-local function get_direction(name, pos)
-	for n,i in ipairs(dirpos_list) do
-		local p = vector.add(pos, vector.multiply(i, -1))
-		if minetest.get_node(p).name == name then
-			return n
-		end
+--returns directions of name touching pos
+local function get_direction(name, pos, use_tab)
+	local tab, num
+	if use_tab then
+		tab, num = {}, 1
 	end
-end
-
-local function get_directions(name, pos)
-	local tab, num = {}, 1
-	for n,i in ipairs(dirpos_list) do
-		local p = vector.add(pos, vector.multiply(i, -1))
+	for n = 1,6 do
+		local p = vector.add(pos, dirpos_list[dir_tab[n]])
 		if minetest.get_node(p).name == name then
+			if not use_tab then
+				return n
+			end
 			tab[num] = n
 			num = num+1
 		end
 	end
-	return tab
+	if use_tab then
+		return tab
+	end
 end
 
-local function get_directions_laser(name, namev, pos)
+--returns a table of some directions of lasers touching pos
+local function get_directions_laser(name, namev, pos, use_tab)
 	local tab, num = {}, 1
-	local dir = get_direction(name, pos)
+	local dir = get_direction(name, pos, use_tab)
 	for n,i in ipairs({
 		{{x=pos.x-1, z=pos.z}, 0},
 		{{x=pos.x, z=pos.z-1}, 1},
@@ -71,7 +72,13 @@ local function get_directions_laser(name, namev, pos)
 		{{x=pos.x, z=pos.z+1}, 1}
 	}) do
 		local pos = {x=i[1].x, y=pos.y, z=i[1].z}
-		if dir == n
+		local dir_is_n
+		if use_tab then
+			dir_is_n = table_contains(dir, n)
+		else
+			dir_is_n = dir == n
+		end
+		if dir_is_n
 		and minetest.get_node(pos).param2 == i[2] then
 			tab[num] = dir_tab[n]
 			num = num+1
@@ -88,33 +95,7 @@ local function get_directions_laser(name, namev, pos)
 	return tab
 end
 
-local function get_directions_lasers(name, namev, pos)
-	local tab, num = {}, 1
-	local dirs = get_directions(name, pos)
-	for n,i in ipairs({
-		{{x=pos.x-1, z=pos.z}, 0},
-		{{x=pos.x, z=pos.z-1}, 1},
-		{{x=pos.x+1, z=pos.z}, 0},
-		{{x=pos.x, z=pos.z+1}, 1}
-	}) do
-		local pos = {x=i[1].x, y=pos.y, z=i[1].z}
-		if table_contains(dirs, n)
-		and minetest.get_node(pos).param2 == i[2] then
-			tab[num] = dir_tab[n]
-			num = num+1
-		end
-	end
-	if minetest.get_node({x=pos.x, y=pos.y-1, z=pos.z}).name == namev then
-		tab[num] = 6
-		num = num+1
-	end
-	if minetest.get_node({x=pos.x, y=pos.y+1, z=pos.z}).name == namev then
-		tab[num] = 5
-		num = num+1
-	end
-	return tab
-end
-
+--returns node information for the laser
 local function get_direction_par(direction, name, name_v)
 	if direction == 1
 	or direction == 3 then
@@ -127,6 +108,7 @@ local function get_direction_par(direction, name, name_v)
 	return {name=name_v}
 end
 
+--removes a laser
 local function luftstrahl(pos, dir, colour)
 	local t1 = os.clock()
 	local addp = dirpos_list[dir]
@@ -177,6 +159,7 @@ local function luftstrahl(pos, dir, colour)
 	end, {t1, l, addp, pos, p})
 end
 
+--creates a laser
 local function laserstrahl(pos, name, name_v, dir)
 	local t1 = os.clock()
 	local addp = dirpos_list[dir]
@@ -232,6 +215,7 @@ local function laserstrahl(pos, name, name_v, dir)
 	end, {t1, l, addp, pos, p})
 end
 
+--used to create/remove a laser
 local function laserabm(pos, colour)
 	local dir = get_direction('default:mese', pos)
 	if dir then
@@ -394,10 +378,11 @@ for _, colour in ipairs(colours) do
 	minetest.register_node(":bobblocks:"..colour.."block_off", block_table)
 end
 
+--checks if a laser touches pos
 local function is_touched_by_laser(pos, dir)
 	dir = dir_tab[dir]
 	for _,colour in pairs(colours) do
-		local lasers = get_directions_lasers("laser:"..colour, "laser:"..colour.."_v", pos)
+		local lasers = get_directions_laser("laser:"..colour, "laser:"..colour.."_v", pos, true)
 		if lasers[1] then
 			for _,dir2 in pairs(lasers) do
 				if dir ~= dir2 then
