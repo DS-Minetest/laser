@@ -344,7 +344,7 @@ for _, colour in ipairs(colours) do
 				end,
 			}
 		},
-		after_dig_node = function(pos)
+		after_destruct = function(pos)
 			after_dig_bob(pos, colour)
 		end
 	}
@@ -358,7 +358,7 @@ for _, colour in ipairs(colours) do
 		groups = tmp.groups,
 		drop = tmp.drop,
 		on_punch = tmp.on_punch,
-		after_dig_node = function(pos)
+		after_destruct = function(pos)
 			after_dig_bob(pos, colour)
 		end,
 		mesecons = {conductor = {
