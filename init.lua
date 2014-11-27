@@ -268,10 +268,22 @@ minetest.register_node(name, {
 	damage_per_second = laser_damage,
 	groups = laser_groups,
 	drop = "",
+	can_dig = function()
+		return false
+	end,
 	node_box = nodebox,
 	sounds =  default.node_sound_leaves_defaults(),
 	-- {-0.5, -0.1, -0.1, 0.5, 0.1, 0.1}, {-0.1, -0.5, -0.1, 0.1, 0.5, 0.1},
 })
+end
+
+if mesecon
+and mesecon.register_mvps_stopper then
+	local tmp = lasernode
+	function lasernode(name, desc, texture, nodebox)
+		tmp(name, desc, texture, nodebox)
+		mesecon.register_mvps_stopper(name)
+	end
 end
 
 local LASERBOX = {
