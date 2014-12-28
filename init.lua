@@ -23,10 +23,10 @@ end
 local function set_vm_data(manip, nodes, pos, t1, name)
 	manip:set_data(nodes)
 	manip:write_to_map()
-	print(string.format("[laser] "..name.." at ("..pos.x.."|"..pos.y.."|"..pos.z..") after ca. %.2fs", os.clock() - t1))
+	minetest.log("info", string.format("[laser] "..name.." at ("..pos.x.."|"..pos.y.."|"..pos.z..") after ca. %.2fs", os.clock() - t1))
 	local t1 = os.clock()
 	manip:update_map()
-	print(string.format("[laser] map updated after ca. %.2fs", os.clock() - t1))
+	minetest.log("info", string.format("[laser] map updated after ca. %.2fs", os.clock() - t1))
 end
 
 local dir_tab = {3, 4, 1, 2, 6, 5}
@@ -439,4 +439,4 @@ minetest.register_node("laser:detector_powered", {
 	}
 })
 
-print(string.format("[laser] loaded after ca. %.2fs", os.clock() - load_time_start))
+minetest.log("info", string.format("[laser] loaded after ca. %.2fs", os.clock() - load_time_start))
