@@ -242,26 +242,17 @@ end
 	end
 end]]
 
-local function after_dig_bob(pos, colour)
+local function after_destruct_bob(pos, colour)
+	local name = minetest.get_node(pos).name
+	if name == "bobblocks:"..colour.."block"
+	or name == "bobblocks:"..colour.."block_off" then
+		-- don't remove the laser if the bobblock became punched
+		return
+	end
 	local dirs = get_directions_laser("laser:"..colour, pos)
 	for _,dir in pairs(dirs) do
 		luftstrahl(pos, dir, colour)
 	end
-end
-
-local function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else -- number, string, boolean, etc
-        copy = orig
-    end
-    return copy
 end
 
 for _,colour in pairs(colours) do
@@ -296,7 +287,10 @@ for _,colour in pairs(colours) do
 		sounds =  default.node_sound_leaves_defaults(),
 		-- {-0.5, -0.1, -0.1, 0.5, 0.1, 0.1}, {-0.1, -0.5, -0.1, 0.1, 0.5, 0.1},
 	})
-	mesecon.register_mvps_stopper(name)
+
+	if mesecon.register_mvps_stopper then
+		mesecon.register_mvps_stopper(name)
+	end
 
 
 	--Bob Blocks (redefinitions)
@@ -318,12 +312,12 @@ for _,colour in pairs(colours) do
 			local old_af_dest = af_dest
 			function af_dest(pos,b)
 				local res = old_af_dest(pos,b)
-				after_dig_bob(pos, colour)
+				after_destruct_bob(pos, colour)
 				return res
 			end
 		else
 			function af_dest(pos)
-				after_dig_bob(pos, colour)
+				after_destruct_bob(pos, colour)
 			end
 		end
 
@@ -359,7 +353,7 @@ minetest.register_node("laser:detector", {
 	paramtype2 = "facedir",
 	laser = {
 		enable = function(pos)
-			mesecon:receptor_on(pos) --seems to work in this order
+			mesecon.receptor_on(pos) --seems to work in this order
 			minetest.add_node(pos, {name="laser:detector_powered"})
 		end
 	}
@@ -378,7 +372,7 @@ minetest.register_node("laser:detector_powered", {
 				return
 			end
 			minetest.add_node(pos, {name="laser:detector"})
-			mesecon:receptor_off(pos)
+			mesecon.receptor_off(pos)
 		end
 	}
 })
