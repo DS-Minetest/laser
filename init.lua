@@ -20,13 +20,17 @@ local function r_area(manip, p1, p2)
 	return VoxelArea:new({MinEdge=emerged_pos1, MaxEdge=emerged_pos2})
 end
 
+local function log(text)
+	minetest.log("info", "[laser] "..text)
+end
+
 local function set_vm_data(manip, nodes, pos, t1, name)
 	manip:set_data(nodes)
 	manip:write_to_map()
-	minetest.log("info", string.format("[laser] "..name.." at ("..pos.x.."|"..pos.y.."|"..pos.z..") after ca. %.2fs", os.clock() - t1))
+	log(string.format(name.." at ("..pos.x.."|"..pos.y.."|"..pos.z..") after ca. %.2fs", os.clock() - t1))
 	local t1 = os.clock()
 	manip:update_map()
-	minetest.log("info", string.format("[laser] map updated after ca. %.2fs", os.clock() - t1))
+	log(string.format("map updated after ca. %.2fs", os.clock() - t1))
 end
 
 local dir_tab = {3, 4, 1, 2, 6, 5}
@@ -62,16 +66,18 @@ local function get_direction(name, pos, use_tab)
 end
 
 --returns a table of some directions of lasers touching pos
-local function get_directions_laser(name, namev, pos, use_tab)
+local function get_directions_laser(name, pos, use_tab)
 	local tab, num = {}, 1
 	local dir = get_direction(name, pos, use_tab)
-	for n,i in ipairs({
-		{{x=pos.x-1, z=pos.z}, 0},
-		{{x=pos.x, z=pos.z-1}, 1},
-		{{x=pos.x+1, z=pos.z}, 0},
-		{{x=pos.x, z=pos.z+1}, 1}
+	for n,i in pairs({
+		{{x=pos.x-1, y=pos.y, z=pos.z}, 0},
+		{{x=pos.x, y=pos.y, z=pos.z-1}, 1},
+		{{x=pos.x+1, y=pos.y, z=pos.z}, 0},
+		{{x=pos.x, y=pos.y, z=pos.z+1}, 1},
+		{{x=pos.x, y=pos.y-1, z=pos.z}, 5},
+		{{x=pos.x, y=pos.y+1, z=pos.z}, 5},
 	}) do
-		local pos = {x=i[1].x, y=pos.y, z=i[1].z}
+		local pos = i[1]
 		local dir_is_n
 		if use_tab then
 			dir_is_n = table_contains(dir, n)
@@ -84,28 +90,7 @@ local function get_directions_laser(name, namev, pos, use_tab)
 			num = num+1
 		end
 	end
-	if minetest.get_node({x=pos.x, y=pos.y-1, z=pos.z}).name == namev then
-		tab[num] = 6
-		num = num+1
-	end
-	if minetest.get_node({x=pos.x, y=pos.y+1, z=pos.z}).name == namev then
-		tab[num] = 5
-		num = num+1
-	end
 	return tab
-end
-
---returns node information for the laser
-local function get_direction_par(direction, name, name_v)
-	if direction == 1
-	or direction == 3 then
-		return {name=name, param2 = 0}
-	end
-	if direction == 2
-	or direction == 4 then
-		return {name=name, param2 = 1}
-	end
-	return {name=name_v}
 end
 
 --removes a laser
@@ -114,6 +99,8 @@ local function luftstrahl(pos, dir, colour)
 	local addp = dirpos_list[dir]
 	local p = pos
 	local l = 0
+
+	-- gets the length of the laser beam
 	for i = 1, max_lenght do
 		p = vector.add(p, addp)
 		local nodename = minetest.get_node(p).name
@@ -128,13 +115,14 @@ local function luftstrahl(pos, dir, colour)
 				break
 			end
 		end
-		if nodename == "laser:"..colour
-		or nodename == "laser:"..colour.."_v" then
+		if nodename == "laser:"..colour then
 			l = l+1
 		else
 			break
 		end
 	end
+
+	-- removes it with vm
 	minetest.after(0, function(param)
 		local t1, l, addp, pos, p = unpack(param)
 		if l == 0 then
@@ -159,14 +147,16 @@ local function luftstrahl(pos, dir, colour)
 	end, {t1, l, addp, pos, p})
 end
 
+--node information for the laser
+local direction_params = {0,1,0,1,5,5}
+
 --creates a laser
-local function laserstrahl(pos, name, name_v, dir)
+local function laserstrahl(pos, name, dir)
 	local t1 = os.clock()
 	local addp = dirpos_list[dir]
 	local p = pos
 	local l = 0
-	local block = get_direction_par(dir, name, name_v)
-	for i = 1, max_lenght, 1 do
+	for i = 1, max_lenght do
 		p = vector.add(p, addp)
 		local nodename = minetest.get_node(p).name
 
@@ -176,7 +166,7 @@ local function laserstrahl(pos, name, name_v, dir)
 			func = laserfcts.enable
 		end
 		if func then
-			if not func(p, dir, {name, name_v}) then
+			if not func(p, dir, name) then
 				break
 			end
 		end
@@ -187,12 +177,13 @@ local function laserstrahl(pos, name, name_v, dir)
 		end
 	end
 	minetest.after(0, function(param)
-		local t1, l, addp, pos, p = unpack(param)
+		local t1, l, addp, pos, dir = unpack(param)
 		if l == 0 then
 			return
 		end
+		local par2 = direction_params[dir]
 		if l == 1 then
-			minetest.add_node(vector.add(pos, addp), block)
+			minetest.add_node(vector.add(pos, addp), {name=name, param2=par2})
 			return
 		end
 		local p1 = vector.add(pos, addp)
@@ -200,8 +191,7 @@ local function laserstrahl(pos, name, name_v, dir)
 		if addp.x + addp.y + addp.z < 0 then
 			p1,p2 = p2,p1
 		end
-		local c_cur = minetest.get_content_id(block.name)
-		local par2 = block.param2 or 0
+		local c_cur = minetest.get_content_id(name)
 		local manip = minetest.get_voxel_manip()
 		local area = r_area(manip, p1, p2)
 		local nodes = manip:get_data()
@@ -212,7 +202,7 @@ local function laserstrahl(pos, name, name_v, dir)
 		end
 		manip:set_param2_data(param2s)
 		set_vm_data(manip, nodes, pos, t1, "laser set")
-	end, {t1, l, addp, pos, p})
+	end, {t1, l, addp, pos, dir})
 end
 
 --used to create/remove a laser
@@ -223,14 +213,14 @@ local function laserabm(pos, colour)
 	else
 		local dir = get_direction("mesecons_extrawires:mese_powered", pos)
 		if dir then
-			laserstrahl(pos, "laser:"..colour, "laser:"..colour.."_v", dir)
+			laserstrahl(pos, "laser:"..colour, dir)
 			--minetest.sound_play("laser", {pos = pos,  gain = 1})
 		end
 	end
 end
 
-function laser_continue_laser(pos) --untested
-	for _,colour in ipairs(colours) do
+--[[function laser_continue_laser(pos) --untested
+	for _,colour in pairs(colours) do
 		local name = "laser:"..colour
 		local dir = get_direction(name, pos)
 		if not dir then
@@ -239,72 +229,22 @@ function laser_continue_laser(pos) --untested
 		end
 		if dir then
 			local p2
-			for _,i in ipairs(dirpos_list) do
+			for _,i in pairs(dirpos_list) do
 				local p = vector.add(pos, i)
 				local nodename = minetest.get_node(p).name
 				if nodename == name then
 					break
 				end
 			end
-			laserstrahl(p, "laser:"..colour, "laser:"..colour.."_v", dir)
+			laserstrahl(p, "laser:"..colour, dir)
 			return
 		end
 	end
-end
-
-local function lasernode(name, desc, texture, nodebox)
-minetest.register_node(name, {
-	description = desc,
-	tiles = {texture},
-	light_source = 15,
-	sunlight_propagates = true,
-	walkable = false,
-	pointable = false,
-	diggable = false,
-	drawtype = "nodebox",
-	paramtype = "light",
-	paramtype2 = "facedir",
-	use_texture_alpha = true,
-	damage_per_second = laser_damage,
-	groups = laser_groups,
-	drop = "",
-	can_dig = function()
-		return false
-	end,
-	node_box = nodebox,
-	sounds =  default.node_sound_leaves_defaults(),
-	-- {-0.5, -0.1, -0.1, 0.5, 0.1, 0.1}, {-0.1, -0.5, -0.1, 0.1, 0.5, 0.1},
-})
-end
-
-if mesecon
-and mesecon.register_mvps_stopper then
-	local tmp = lasernode
-	function lasernode(name, desc, texture, nodebox)
-		tmp(name, desc, texture, nodebox)
-		mesecon.register_mvps_stopper(name)
-	end
-end
-
-local LASERBOX = {
-		type = "fixed",
-		fixed = {
-			{-0.5, -0.5, 0, 0.5, 0.5, 0},
-			{-0.5, 0, -0.5, 0.5, 0, 0.5},
-		}
-	}
-
-local LASERBOXV = {
-		type = "fixed",
-		fixed = {
-			{-0.5, -0.5, 0, 0.5, 0.5, 0},
-			{0, -0.5, -0.5, 0, 0.5, 0.5},
-		}
-	}
+end]]
 
 local function after_dig_bob(pos, colour)
-	local dirs = get_directions_laser("laser:"..colour, "laser:"..colour.."_v", pos)
-	for _,dir in ipairs(dirs) do
+	local dirs = get_directions_laser("laser:"..colour, pos)
+	for _,dir in pairs(dirs) do
 		luftstrahl(pos, dir, colour)
 	end
 end
@@ -324,9 +264,37 @@ local function deepcopy(orig)
     return copy
 end
 
-for _, colour in ipairs(colours) do
-	lasernode("laser:"..colour, colour.." laser", "laser_"..colour..".png^[transformR90", LASERBOX)
-	lasernode("laser:"..colour.."_v", "vertical "..colour.." laser", "laser_"..colour..".png", LASERBOXV)
+for _,colour in pairs(colours) do
+	local name = "laser:"..colour
+	minetest.register_node(name, {
+		description = colour.." laser",
+		tiles = {"laser_"..colour..".png^[transformR90"},
+		light_source = 15,
+		sunlight_propagates = true,
+		walkable = false,
+		pointable = false,
+		diggable = false,
+		drawtype = "nodebox",
+		paramtype = "light",
+		paramtype2 = "facedir",
+		use_texture_alpha = true,
+		damage_per_second = laser_damage,
+		groups = laser_groups,
+		drop = "",
+		can_dig = function()
+			return false
+		end,
+		node_box = {
+			type = "fixed",
+			fixed = {
+				{-0.5, -0.5, 0, 0.5, 0.5, 0},
+				{-0.5, 0, -0.5, 0.5, 0, 0.5},
+			}
+		},
+		sounds =  default.node_sound_leaves_defaults(),
+		-- {-0.5, -0.1, -0.1, 0.5, 0.1, 0.1}, {-0.1, -0.5, -0.1, 0.1, 0.5, 0.1},
+	})
+	mesecon.register_mvps_stopper(name)
 
 
 	--Bob Blocks (redefinitions)
@@ -394,7 +362,7 @@ end
 local function is_touched_by_laser(pos, dir)
 	dir = dir_tab[dir]
 	for _,colour in pairs(colours) do
-		local lasers = get_directions_laser("laser:"..colour, "laser:"..colour.."_v", pos, true)
+		local lasers = get_directions_laser("laser:"..colour, pos, true)
 		if lasers[1] then
 			for _,dir2 in pairs(lasers) do
 				if dir ~= dir2 then
@@ -439,4 +407,24 @@ minetest.register_node("laser:detector_powered", {
 	}
 })
 
-minetest.log("info", string.format("[laser] loaded after ca. %.2fs", os.clock() - load_time_start))
+
+-- legacy
+
+for _,colour in pairs(colours) do
+	minetest.register_node("laser:"..colour.."_v", {groups={laser_oldv=1}})
+end
+
+minetest.register_abm({
+	nodenames = {"group:laser_oldv"},
+	interval = 1,
+	chance = 1,
+	action = function(pos, node)
+		node.name = string.sub(node.name, 1, -3)
+		node.param2 = 5
+		minetest.set_node(pos, node)
+		log("an old vertical laser node became changed at "..minetest.pos_to_string(pos))
+	end
+})
+
+
+log(string.format("loaded after ca. %.2fs", os.clock() - load_time_start))
