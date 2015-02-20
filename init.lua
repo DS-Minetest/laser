@@ -323,7 +323,8 @@ for _,colour in pairs(colours) do
 
 		minetest.override_item(name, {
 			mesecons = cons,
-			after_destruct = af_dest
+			after_destruct = af_dest,
+			laser = {emitter = true}
 		})
 	end
 end
