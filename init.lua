@@ -207,7 +207,7 @@ end
 
 --used to create/remove a laser
 local function laserabm(pos, colour)
-	local dir = get_direction('default:mese', pos)
+	local dir = get_direction("default:mese", pos)
 	if dir then
 		luftstrahl(pos, dir, colour)
 	else
@@ -265,6 +265,8 @@ local function deepcopy(orig)
 end
 
 for _,colour in pairs(colours) do
+
+	-- registers a laser node
 	local name = "laser:"..colour
 	minetest.register_node(name, {
 		description = colour.." laser",
@@ -299,63 +301,37 @@ for _,colour in pairs(colours) do
 
 	--Bob Blocks (redefinitions)
 
-	local tmp = deepcopy(minetest.registered_nodes["bobblocks:"..colour.."block"])
-	local block_table = {
-		description = tmp.description,
-		drawtype = tmp.drawtype,
-		tile_images = tmp.tile_images,
-		inventory_image = tmp.inventory_image,
-		paramtype = tmp.paramtype,
-		sunlight_propagates = tmp.sunlight_propagates,
-		sounds = tmp.sounds,
-		light_source = tmp.light_source,
-		groups = tmp.groups,
-		on_punch = tmp.on_punch,
-		mesecons = {conductor = {
-				state = mesecon.state.on,
-				offstate = "bobblocks:"..colour.."block_off"
-			},
-			effector = {
-				action_on = function(pos)
-					laserabm(pos, colour)
-				end,
-				action_off = function(pos)
-					laserabm(pos, colour)
-				end,
-			}
-		},
-		after_destruct = function(pos)
-			after_dig_bob(pos, colour)
-		end
-	}
-	minetest.register_node(":bobblocks:"..colour.."block", block_table)
+	for _,name in pairs({"bobblocks:"..colour.."block", "bobblocks:"..colour.."block_off"}) do
+		local data = minetest.registered_nodes[name]
 
-	local tmp = deepcopy(minetest.registered_nodes["bobblocks:"..colour.."block_off"])
-	local block_table = {
-		description = tmp.description,
-		tile_images = tmp.tile_images,
-		alpha = tmp.alpha,
-		groups = tmp.groups,
-		drop = tmp.drop,
-		on_punch = tmp.on_punch,
-		after_destruct = function(pos)
-			after_dig_bob(pos, colour)
-		end,
-		mesecons = {conductor = {
-				state = mesecon.state.off,
-				onstate = "bobblocks:"..colour.."block"
-			},
-			effector = {
-				action_on = function(pos)
-					laserabm(pos, colour)
-				end,
-				action_off = function(pos)
-					laserabm(pos, colour)
-				end,
-			}
-		}
-	}
-	minetest.register_node(":bobblocks:"..colour.."block_off", block_table)
+		local cons = data.mesecons or {}
+		cons.effector = cons.effector or {}
+		cons.effector.action_on = function(pos)
+			laserabm(pos, colour)
+		end
+		cons.effector.action_off = function(pos)
+			laserabm(pos, colour)
+		end
+
+		local af_dest = data.after_destruct
+		if af_dest then
+			local old_af_dest = af_dest
+			function af_dest(pos,b)
+				local res = old_af_dest(pos,b)
+				after_dig_bob(pos, colour)
+				return res
+			end
+		else
+			function af_dest(pos)
+				after_dig_bob(pos, colour)
+			end
+		end
+
+		minetest.override_item(name, {
+			mesecons = cons,
+			after_destruct = af_dest
+		})
+	end
 end
 
 --checks if a laser touches pos
