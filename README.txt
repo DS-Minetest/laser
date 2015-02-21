@@ -1,3 +1,3 @@
 TODO:
 — add particles
-— add mirrors
+— add meta to mirrors

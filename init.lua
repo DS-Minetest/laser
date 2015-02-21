@@ -346,7 +346,7 @@ local function is_touched_by_laser(pos, dir)
 end
 
 minetest.register_node("laser:detector", {
-	description = "Laser Detector",
+	description = "laser detector",
 	tiles = {"laserdetector.png"},
 	mesecons = {receptor ={state = mesecon.state.off}},
 	groups = {cracky=1,level=2},
@@ -376,6 +376,57 @@ minetest.register_node("laser:detector_powered", {
 			mesecon.receptor_off(pos)
 		end
 	}
+})
+
+local mirror_data = {
+	[0]={2,5}, {1,5}, {4,5}, {3,5},
+	{4,5}, {1,2}, {4,6}, {3,2},
+	{2,6}, {1,4}, {2,5}, {2,1},
+	{2,1}, {3,5}, {3,2}, {3,6},
+	{1,4}, {1,6}, {1,2}, {1,5},
+	{2,6}, {3,6}, {4,6}, {1,6},
+}
+for par,dirs in pairs(mirror_data) do
+	mirror_data[par] = {[dirs[1]] = dirs[2], [dir_tab[dirs[2]]] = dir_tab[dirs[1]]}
+end
+
+minetest.register_node("laser:mirror", {
+	description = "mirror",
+	tiles = {"default_steel_block.png"},
+	groups = {cracky=1,level=2},
+	sounds = default.node_sound_glass_defaults(),
+	drawtype = "nodebox",
+	node_box = {
+		type = "fixed",
+		fixed = {
+			{-0.5, -0.5, 0.4, 0.5, 0.5, 0.5},
+			{-0.5, -0.5, -0.5, 0.5, -0.4, 0.5},
+		}
+	},
+	paramtype = "light",
+	paramtype2 = "facedir",
+	laser = {
+		emitter = true,
+		enable = function(pos, dir, name)
+			local par2 = minetest.get_node(pos).param2
+			local next_dir = mirror_data[par2][dir]
+			if not next_dir then
+				return
+			end
+			laserstrahl(pos, name, next_dir)
+			minetest.chat_send_all(dir)
+		end,
+		disable = function(pos, dir, colour)
+			local par2 = minetest.get_node(pos).param2
+			local next_dir = mirror_data[par2][dir]
+			if not next_dir then
+				return
+			end
+			luftstrahl(pos, next_dir, colour)
+			minetest.chat_send_all(dir)
+		end
+	},
+	on_place = minetest.rotate_node,
 })
 
 
