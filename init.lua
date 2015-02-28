@@ -414,7 +414,6 @@ minetest.register_node("laser:mirror", {
 				return
 			end
 			laserstrahl(pos, name, next_dir)
-			minetest.chat_send_all(dir)
 		end,
 		disable = function(pos, dir, colour)
 			local par2 = minetest.get_node(pos).param2
@@ -423,7 +422,6 @@ minetest.register_node("laser:mirror", {
 				return
 			end
 			luftstrahl(pos, next_dir, colour)
-			minetest.chat_send_all(dir)
 		end
 	},
 	on_place = minetest.rotate_node,
