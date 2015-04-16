@@ -274,9 +274,7 @@ for _,colour in pairs(colours) do
 		damage_per_second = laser_damage,
 		groups = laser_groups,
 		drop = "",
-		can_dig = function()
-			return false
-		end,
+		diggable = false,
 		node_box = {
 			type = "fixed",
 			fixed = {
