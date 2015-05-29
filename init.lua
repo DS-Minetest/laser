@@ -1,6 +1,6 @@
 local load_time_start = os.clock()
 local max_lenght = 200
-local laser_groups = {hot=3, not_in_creative_inventory=1}--igniter=2, 
+local laser_groups = {hot=3, not_in_creative_inventory=1}--igniter=2,
 local laser_damage = 8*2
 local colours = {"red", "orange", "yellow", "green", "blue", "indigo", "violet", "white"}
 
