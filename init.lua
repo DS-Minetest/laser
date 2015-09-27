@@ -106,20 +106,17 @@ local function luftstrahl(pos, dir, colour)
 		local nodename = minetest.get_node(p).name
 
 		local laserfcts = minetest.registered_nodes[nodename].laser
-		local func
 		if laserfcts then
-			func = laserfcts.disable
-		end
-		if func then
-			if not func(p, dir, colour) then
+			local func = laserfcts.disable
+			if func
+			and not func(p, dir, colour) then
 				break
 			end
 		end
-		if nodename == "laser:"..colour then
-			l = l+1
-		else
+		if nodename ~= "laser:"..colour then
 			break
 		end
+		l = l+1
 	end
 
 	-- removes it with vm
@@ -161,20 +158,17 @@ local function laserstrahl(pos, name, dir)
 		local nodename = minetest.get_node(p).name
 
 		local laserfcts = minetest.registered_nodes[nodename].laser
-		local func
 		if laserfcts then
-			func = laserfcts.enable
-		end
-		if func then
-			if not func(p, dir, name) then
+			local func = laserfcts.enable
+			if func
+			and not func(p, dir, name) then
 				break
 			end
 		end
-		if nodename == 'air' then
-			l = l+1
-		else
+		if nodename ~= 'air' then
 			break
 		end
+		l = l+1
 	end
 	minetest.after(0, function(param)
 		local t1, l, addp, pos, dir = unpack(param)
