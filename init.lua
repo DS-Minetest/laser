@@ -2,16 +2,16 @@ local load_time_start = os.clock()
 local max_lenght = 200
 local laser_groups = {hot=3, not_in_creative_inventory=1}--igniter=2,
 local laser_damage = 8*2
-local colours = {"red", "orange", "yellow", "green", "blue", "indigo", "violet", "white"}
-
-local function table_contains(t, v)
-	for _,i in pairs(t) do
-		if i == v then
-			return true
-		end
-	end
-	return false
-end
+local colours = {
+	red = "#ff0000",
+	orange = "#ff6400",
+	yellow = "#f5ff00",
+	green = "#00ff00",
+	blue = "#0005ff",
+	indigo = "#ff00e8",
+	violet = "#9900ff",
+	white = true
+}
 
 local c_air = minetest.get_content_id("air")
 
@@ -63,6 +63,15 @@ local function get_direction(name, pos, use_tab)
 	if use_tab then
 		return tab
 	end
+end
+
+local function table_contains(t, v)
+	for _,i in pairs(t) do
+		if i == v then
+			return true
+		end
+	end
+	return false
 end
 
 --returns a table of some directions of lasers touching pos
@@ -214,7 +223,7 @@ local function laserabm(pos, colour)
 end
 
 --[[function laser_continue_laser(pos) --untested
-	for _,colour in pairs(colours) do
+	for colour in pairs(colours) do
 		local name = "laser:"..colour
 		local dir = get_direction(name, pos)
 		if not dir then
@@ -249,12 +258,21 @@ local function after_destruct_bob(pos, colour)
 	end
 end
 
-for _,colour in pairs(colours) do
+for colour,hx in pairs(colours) do
+
 
 	-- registers a laser node
+
+	--[[ currently using colorize breaks the use_texture_alpha
+	local texture = "laser_white.png^[transformR90"
+	if colour ~= "white" then
+		texture = texture.."^[colorize:"..hx
+	end--]]
+
 	local name = "laser:"..colour
 	minetest.register_node(name, {
 		description = colour.." laser",
+		--tiles = {texture},
 		tiles = {"laser_"..colour..".png^[transformR90"},
 		light_source = 15,
 		sunlight_propagates = true,
@@ -324,7 +342,7 @@ end
 --checks if a laser touches pos
 local function is_touched_by_laser(pos, dir)
 	dir = dir_tab[dir]
-	for _,colour in pairs(colours) do
+	for colour in pairs(colours) do
 		local lasers = get_directions_laser("laser:"..colour, pos, true)
 		if lasers[1] then
 			for _,dir2 in pairs(lasers) do
@@ -422,7 +440,7 @@ minetest.register_node("laser:mirror", {
 
 -- legacy
 
-for _,colour in pairs(colours) do
+for colour in pairs(colours) do
 	minetest.register_node("laser:"..colour.."_v", {groups={laser_oldv=1}})
 end
 
