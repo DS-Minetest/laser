@@ -279,14 +279,13 @@ for colour,hx in pairs(colours) do
 		walkable = false,
 		pointable = false,
 		diggable = false,
+		drop = "",
 		drawtype = "nodebox",
 		paramtype = "light",
 		paramtype2 = "facedir",
 		use_texture_alpha = true,
 		damage_per_second = laser_damage,
 		groups = laser_groups,
-		drop = "",
-		diggable = false,
 		node_box = {
 			type = "fixed",
 			fixed = {
