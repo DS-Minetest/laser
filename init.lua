@@ -102,17 +102,37 @@ local function get_directions_laser(name, pos, use_tab)
 	return tab
 end
 
+-- gets a node also in unloaded chunks
+local function get_nodename(p, addp)
+	local nodename = minetest.get_node(p).name
+	if nodename ~= "ignore" then
+		return nodename
+	end
+	-- load chunk
+	minetest.get_voxel_manip():read_from_map(p, vector.add(p, vector.multiply(addp, 16)))
+	nodename = minetest.get_node(p).name
+	if nodename == "ignore" then
+		-- not generated
+		return
+	end
+	return nodename
+end
+
 --removes a laser
 local function luftstrahl(pos, dir, colour)
 	local t1 = os.clock()
 	local addp = dirpos_list[dir]
 	local p = pos
 	local l = 0
+	local name = "laser:"..colour
 
 	-- gets the length of the laser beam
 	for i = 1, max_lenght do
 		p = vector.add(p, addp)
-		local nodename = minetest.get_node(p).name
+		local nodename = get_nodename(p, addp)
+		if not nodename then
+			break
+		end
 
 		local laserfcts = minetest.registered_nodes[nodename].laser
 		if laserfcts then
@@ -122,20 +142,22 @@ local function luftstrahl(pos, dir, colour)
 				break
 			end
 		end
-		if nodename ~= "laser:"..colour then
+		if nodename ~= name then
 			break
 		end
 		l = l+1
 	end
 
 	-- removes it with vm
-	minetest.after(0, function(param)
-		local t1, l, addp, pos, p = unpack(param)
+	minetest.after(0, function(t1, l, addp, pos, p, name)
 		if l == 0 then
 			return
 		end
 		if l == 1 then
-			minetest.remove_node(vector.add(pos, addp))
+			pos = vector.add(pos, addp)
+			if minetest.get_node(pos).name == name then
+				minetest.remove_node(pos)
+			end
 			return
 		end
 		local p1 = vector.add(pos, addp)
@@ -143,14 +165,17 @@ local function luftstrahl(pos, dir, colour)
 		if addp.x + addp.y + addp.z < 0 then
 			p1,p2 = p2,p1
 		end
+		local laser_id = minetest.get_content_id(name)
 		local manip = minetest.get_voxel_manip()
 		local area = r_area(manip, p1, p2)
 		local nodes = manip:get_data()
 		for i in area:iterp(p1, p2) do
-			nodes[i] = c_air
+			if nodes[i] == laser_id then
+				nodes[i] = c_air
+			end
 		end
 		set_vm_data(manip, nodes, pos, t1, "removed")
-	end, {t1, l, addp, pos, p})
+	end, t1, l, addp, pos, p, name)
 end
 
 --node information for the laser
@@ -164,7 +189,10 @@ local function laserstrahl(pos, name, dir)
 	local l = 0
 	for i = 1, max_lenght do
 		p = vector.add(p, addp)
-		local nodename = minetest.get_node(p).name
+		local nodename = get_nodename(p, addp)
+		if not nodename then
+			break
+		end
 
 		local laserfcts = minetest.registered_nodes[nodename].laser
 		if laserfcts then
@@ -174,7 +202,7 @@ local function laserstrahl(pos, name, dir)
 				break
 			end
 		end
-		if nodename ~= 'air' then
+		if nodename ~= "air" then
 			break
 		end
 		l = l+1
@@ -186,7 +214,10 @@ local function laserstrahl(pos, name, dir)
 		end
 		local par2 = direction_params[dir]
 		if l == 1 then
-			minetest.add_node(vector.add(pos, addp), {name=name, param2=par2})
+			pos = vector.add(pos, addp)
+			if minetest.get_node(pos).name == "air" then
+				minetest.add_node(pos, {name=name, param2=par2})
+			end
 			return
 		end
 		local p1 = vector.add(pos, addp)
@@ -200,6 +231,9 @@ local function laserstrahl(pos, name, dir)
 		local nodes = manip:get_data()
 		local param2s = manip:get_param2_data()
 		for i in area:iterp(p1, p2) do
+			if nodes[i] ~= c_air then
+				break
+			end
 			nodes[i] = c_cur	--I need an explanation: sometimes the needed param2 is
 			param2s[i] = par2	--fetched automatically but only in the current chunk
 		end
