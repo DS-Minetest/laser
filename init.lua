@@ -1,5 +1,4 @@
 local load_time_start = os.clock()
-local max_lenght = 200
 local laser_groups = {hot=3, not_in_creative_inventory=1}--igniter=2,
 local laser_damage = 8*2
 local colours = {
@@ -127,7 +126,7 @@ local function luftstrahl(pos, dir, colour)
 	local name = "laser:"..colour
 
 	-- gets the length of the laser beam
-	for i = 1, max_lenght do
+	while true do
 		p = vector.add(p, addp)
 		local nodename = get_nodename(p, addp)
 		if not nodename then
@@ -187,7 +186,7 @@ local function laserstrahl(pos, name, dir)
 	local addp = dirpos_list[dir]
 	local p = pos
 	local l = 0
-	for i = 1, max_lenght do
+	while true do
 		p = vector.add(p, addp)
 		local nodename = get_nodename(p, addp)
 		if not nodename then
