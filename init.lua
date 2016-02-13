@@ -117,7 +117,36 @@ local function get_nodename(p, addp)
 	return nodename
 end
 
---removes a laser
+-- removes a laser
+local function luftstrahl_setzen(t1, l, addp, pos, p, name)
+	if l == 0 then
+		return
+	end
+	if l == 1 then
+		pos = vector.add(pos, addp)
+		if minetest.get_node(pos).name == name then
+			minetest.remove_node(pos)
+		end
+		return
+	end
+	local p1 = vector.add(pos, addp)
+	local p2 = vector.add(pos, vector.multiply(addp, l))
+	if addp.x + addp.y + addp.z < 0 then
+		p1,p2 = p2,p1
+	end
+	local laser_id = minetest.get_content_id(name)
+	local manip = minetest.get_voxel_manip()
+	local area = r_area(manip, p1, p2)
+	local nodes = manip:get_data()
+	for i in area:iterp(p1, p2) do
+		if nodes[i] == laser_id then
+			nodes[i] = c_air
+		end
+	end
+	set_vm_data(manip, nodes, pos, t1, "removed")
+end
+
+-- tests and then removes laser
 local function luftstrahl(pos, dir, colour)
 	local t1 = os.clock()
 	local addp = dirpos_list[dir]
@@ -148,39 +177,47 @@ local function luftstrahl(pos, dir, colour)
 	end
 
 	-- removes it with vm
-	minetest.after(0, function(t1, l, addp, pos, p, name)
-		if l == 0 then
-			return
-		end
-		if l == 1 then
-			pos = vector.add(pos, addp)
-			if minetest.get_node(pos).name == name then
-				minetest.remove_node(pos)
-			end
-			return
-		end
-		local p1 = vector.add(pos, addp)
-		local p2 = vector.add(pos, vector.multiply(addp, l))
-		if addp.x + addp.y + addp.z < 0 then
-			p1,p2 = p2,p1
-		end
-		local laser_id = minetest.get_content_id(name)
-		local manip = minetest.get_voxel_manip()
-		local area = r_area(manip, p1, p2)
-		local nodes = manip:get_data()
-		for i in area:iterp(p1, p2) do
-			if nodes[i] == laser_id then
-				nodes[i] = c_air
-			end
-		end
-		set_vm_data(manip, nodes, pos, t1, "removed")
-	end, t1, l, addp, pos, p, name)
+	minetest.after(0, luftstrahl_setzen, t1, l, addp, pos, p, name)
 end
 
 --node information for the laser
 local direction_params = {0,1,0,1,5,5}
 
---creates a laser
+-- creates a laser
+local function laserstrahl_setzen(t1, l, addp, pos, dir, name)
+	if l == 0 then
+		return
+	end
+	local par2 = direction_params[dir]
+	if l == 1 then
+		pos = vector.add(pos, addp)
+		if minetest.get_node(pos).name == "air" then
+			minetest.add_node(pos, {name=name, param2=par2})
+		end
+		return
+	end
+	local p1 = vector.add(pos, addp)
+	local p2 = vector.add(pos, vector.multiply(addp, l))
+	if addp.x + addp.y + addp.z < 0 then
+		p1,p2 = p2,p1
+	end
+	local c_cur = minetest.get_content_id(name)
+	local manip = minetest.get_voxel_manip()
+	local area = r_area(manip, p1, p2)
+	local nodes = manip:get_data()
+	local param2s = manip:get_param2_data()
+	for i in area:iterp(p1, p2) do
+		if nodes[i] ~= c_air then
+			break
+		end
+		nodes[i] = c_cur	--I need an explanation: sometimes the needed param2 is
+		param2s[i] = par2	--fetched automatically but only in the current chunk
+	end
+	manip:set_param2_data(param2s)
+	set_vm_data(manip, nodes, pos, t1, "laser set")
+end
+
+-- tests and then creates laser
 local function laserstrahl(pos, name, dir)
 	local t1 = os.clock()
 	local addp = dirpos_list[dir]
@@ -206,39 +243,7 @@ local function laserstrahl(pos, name, dir)
 		end
 		l = l+1
 	end
-	minetest.after(0, function(param)
-		local t1, l, addp, pos, dir = unpack(param)
-		if l == 0 then
-			return
-		end
-		local par2 = direction_params[dir]
-		if l == 1 then
-			pos = vector.add(pos, addp)
-			if minetest.get_node(pos).name == "air" then
-				minetest.add_node(pos, {name=name, param2=par2})
-			end
-			return
-		end
-		local p1 = vector.add(pos, addp)
-		local p2 = vector.add(pos, vector.multiply(addp, l))
-		if addp.x + addp.y + addp.z < 0 then
-			p1,p2 = p2,p1
-		end
-		local c_cur = minetest.get_content_id(name)
-		local manip = minetest.get_voxel_manip()
-		local area = r_area(manip, p1, p2)
-		local nodes = manip:get_data()
-		local param2s = manip:get_param2_data()
-		for i in area:iterp(p1, p2) do
-			if nodes[i] ~= c_air then
-				break
-			end
-			nodes[i] = c_cur	--I need an explanation: sometimes the needed param2 is
-			param2s[i] = par2	--fetched automatically but only in the current chunk
-		end
-		manip:set_param2_data(param2s)
-		set_vm_data(manip, nodes, pos, t1, "laser set")
-	end, {t1, l, addp, pos, dir})
+	minetest.after(0, laserstrahl_setzen, t1, l, addp, pos, dir, name)
 end
 
 --used to create/remove a laser
