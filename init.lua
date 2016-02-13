@@ -177,7 +177,7 @@ local function luftstrahl(pos, dir, colour)
 	end
 
 	-- removes it with vm
-	minetest.after(0, luftstrahl_setzen, t1, l, addp, pos, p, name)
+	minetest.delay_function(20, luftstrahl_setzen, t1, l, addp, pos, p, name)
 end
 
 --node information for the laser
@@ -243,7 +243,7 @@ local function laserstrahl(pos, name, dir)
 		end
 		l = l+1
 	end
-	minetest.after(0, laserstrahl_setzen, t1, l, addp, pos, dir, name)
+	minetest.delay_function(20, laserstrahl_setzen, t1, l, addp, pos, dir, name)
 end
 
 --used to create/remove a laser
