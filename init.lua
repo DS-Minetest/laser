@@ -301,17 +301,17 @@ for colour,hx in pairs(colours) do
 
 	-- registers a laser node
 
-	--[[ currently using colorize breaks the use_texture_alpha
+	-- [[
 	local texture = "laser_white.png^[transformR90"
 	if colour ~= "white" then
-		texture = texture.."^[colorize:"..hx
+		texture = texture.."^[colorize:"..hx..":alpha"
 	end--]]
 
 	local name = "laser:"..colour
 	minetest.register_node(name, {
 		description = colour.." laser",
-		--tiles = {texture},
-		tiles = {"laser_"..colour..".png^[transformR90"},
+		tiles = {texture},
+		--tiles = {"laser_"..colour..".png^[transformR90"},
 		light_source = 15,
 		sunlight_propagates = true,
 		walkable = false,
