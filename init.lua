@@ -1,6 +1,7 @@
 local load_time_start = os.clock()
 local laser_groups = {hot=3, not_in_creative_inventory=1}--igniter=2,
 local laser_damage = 8*2
+local texture_scale = 0.16
 local colours = {
 	red = "#ff0000",
 	orange = "#ff6400",
@@ -296,6 +297,20 @@ local function after_destruct_bob(pos, colour)
 	end
 end
 
+local node_box = {
+	type = "fixed",
+	fixed = {
+		{nil, -0.5, 0, nil, 0.5, 0},
+		{nil, 0, -0.5, nil, 0, 0.5},
+	}
+}
+local b = node_box.fixed
+for i = 1, #b do
+	local b = b[i]
+	b[1] = -0.5 / texture_scale
+	b[4] = 0.5 / texture_scale
+end
+
 for colour,hx in pairs(colours) do
 
 
@@ -324,13 +339,8 @@ for colour,hx in pairs(colours) do
 		use_texture_alpha = true,
 		damage_per_second = laser_damage,
 		groups = laser_groups,
-		node_box = {
-			type = "fixed",
-			fixed = {
-				{-0.5, -0.5, 0, 0.5, 0.5, 0},
-				{-0.5, 0, -0.5, 0.5, 0, 0.5},
-			}
-		},
+		visual_scale = texture_scale,
+		node_box = node_box,
 		sounds =  default.node_sound_leaves_defaults(),
 		-- {-0.5, -0.1, -0.1, 0.5, 0.1, 0.1}, {-0.1, -0.5, -0.1, 0.1, 0.5, 0.1},
 	})
