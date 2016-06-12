@@ -13,11 +13,11 @@ local colours = {
 	white = true
 }
 
-local c_air = minetest.get_content_id("air")
+local c_air = minetest.get_content_id"air"
 
 local function r_area(manip, p1, p2)
 	local emerged_pos1, emerged_pos2 = manip:read_from_map(p1, p2)
-	return VoxelArea:new({MinEdge=emerged_pos1, MaxEdge=emerged_pos2})
+	return VoxelArea:new{MinEdge=emerged_pos1, MaxEdge=emerged_pos2}
 end
 
 local function log(text)
@@ -78,14 +78,14 @@ end
 local function get_directions_laser(name, pos, use_tab)
 	local tab, num = {}, 1
 	local dir = get_direction(name, pos, use_tab)
-	for n,i in pairs({
+	for n,i in pairs{
 		{{x=pos.x-1, y=pos.y, z=pos.z}, 0},
 		{{x=pos.x, y=pos.y, z=pos.z-1}, 1},
 		{{x=pos.x+1, y=pos.y, z=pos.z}, 0},
 		{{x=pos.x, y=pos.y, z=pos.z+1}, 1},
 		{{x=pos.x, y=pos.y-1, z=pos.z}, 5},
 		{{x=pos.x, y=pos.y+1, z=pos.z}, 5},
-	}) do
+	} do
 		local pos = i[1]
 		local dir_is_n
 		if use_tab then
@@ -352,7 +352,7 @@ for colour,hx in pairs(colours) do
 
 	--Bob Blocks (redefinitions)
 
-	for _,name in pairs({"bobblocks:"..colour.."block", "bobblocks:"..colour.."block_off"}) do
+	for _,name in pairs{"bobblocks:"..colour.."block", "bobblocks:"..colour.."block_off"} do
 		local data = minetest.registered_nodes[name]
 
 		local cons = data.mesecons or {}
@@ -419,7 +419,7 @@ minetest.register_node("laser:detector", {
 
 minetest.register_node("laser:detector_powered", {
 	tiles = {"laserdetector.png^[brighten"},
-	mesecons = {receptor ={state = mesecon.state.on}},
+	mesecons = {receptor = {state = mesecon.state.on}},
 	drop = "laser:detector",
 	groups = {cracky=1,level=2},
 	sounds = default.node_sound_stone_defaults(),
