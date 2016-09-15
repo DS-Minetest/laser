@@ -118,6 +118,19 @@ local function get_nodename(p, addp)
 	return nodename
 end
 
+-- returns step and count for iteration
+local function iter_straight(area, addp)
+	if addp.x ~= 0 then
+		return 1
+	end
+	if addp.y ~= 0 then
+		return area.ystride
+	end
+	if addp.z ~= 0 then
+		return area.zstride
+	end
+end
+
 -- removes a laser
 local function luftstrahl_setzen(t1, l, addp, pos, p, name)
 	if l == 0 then
@@ -139,10 +152,14 @@ local function luftstrahl_setzen(t1, l, addp, pos, p, name)
 	local manip = minetest.get_voxel_manip()
 	local area = r_area(manip, p1, p2)
 	local nodes = manip:get_data()
-	for i in area:iterp(p1, p2) do
-		if nodes[i] == laser_id then
-			nodes[i] = c_air
+
+	local vi = area:indexp(p1)
+	local stride = iter_straight(area, addp)
+	for _ = 1,l do
+		if nodes[vi] == laser_id then
+			nodes[vi] = c_air
 		end
+		vi = vi + stride
 	end
 	set_vm_data(manip, nodes, pos, t1, "removed")
 end
@@ -207,13 +224,18 @@ local function laserstrahl_setzen(t1, l, addp, pos, dir, name)
 	local area = r_area(manip, p1, p2)
 	local nodes = manip:get_data()
 	local param2s = manip:get_param2_data()
-	for i in area:iterp(p1, p2) do
-		if nodes[i] ~= c_air then
+
+	local vi = area:indexp(p1)
+	local stride = iter_straight(area, addp)
+	for _ = 1,l do
+		if nodes[vi] ~= c_air then
 			break
 		end
-		nodes[i] = c_cur	--I need an explanation: sometimes the needed param2 is
-		param2s[i] = par2	--fetched automatically but only in the current chunk
+		nodes[vi] = c_cur	--I need an explanation: sometimes the needed param2 is
+		param2s[vi] = par2	--fetched automatically but only in the current chunk
+		vi = vi + stride
 	end
+
 	manip:set_param2_data(param2s)
 	set_vm_data(manip, nodes, pos, t1, "laser set")
 end
