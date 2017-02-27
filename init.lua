@@ -12,6 +12,16 @@ local colours = {
 	violet = "#9900ff",
 	white = true
 }
+local pcolours = {
+	red = "1",
+	orange = "2",
+	yellow = "3",
+	green = "4",
+	blue = "5",
+	indigo = "6",
+	violet = "7",
+	white = 0
+}
 
 local c_air = minetest.get_content_id"air"
 
@@ -170,7 +180,7 @@ local function luftstrahl(pos, dir, colour)
 	local addp = dirpos_list[dir]
 	local p = pos
 	local l = 0
-	local name = "laser:"..colour
+	local name = "laser:laser"
 
 	-- gets the length of the laser beam
 	while true do
@@ -202,15 +212,15 @@ end
 local direction_params = {0,1,0,1,5,5}
 
 -- creates a laser
-local function laserstrahl_setzen(t1, l, addp, pos, dir, name)
+local function laserstrahl_setzen(t1, l, addp, pos, dir, colour)
 	if l == 0 then
 		return
 	end
-	local par2 = direction_params[dir]
+	local par2 = direction_params[dir] + 32*pcolours[colour]
 	if l == 1 then
 		pos = vector.add(pos, addp)
 		if minetest.get_node(pos).name == "air" then
-			minetest.add_node(pos, {name=name, param2=par2})
+			minetest.add_node(pos, {name="laser:laser", param2=par2})
 		end
 		return
 	end
@@ -241,7 +251,7 @@ local function laserstrahl_setzen(t1, l, addp, pos, dir, name)
 end
 
 -- tests and then creates laser
-local function laserstrahl(pos, name, dir)
+local function laserstrahl(pos, colour, dir)
 	local t1 = os.clock()
 	local addp = dirpos_list[dir]
 	local p = pos
@@ -257,7 +267,7 @@ local function laserstrahl(pos, name, dir)
 		if laserfcts then
 			local func = laserfcts.enable
 			if func
-			and not func(p, dir, name) then
+			and not func(p, dir, colour) then
 				break
 			end
 		end
@@ -266,7 +276,7 @@ local function laserstrahl(pos, name, dir)
 		end
 		l = l+1
 	end
-	minetest.delay_function(20, laserstrahl_setzen, t1, l, addp, pos, dir, name)
+	minetest.delay_function(20, laserstrahl_setzen, t1, l, addp, pos, dir, colour)
 end
 
 --used to create/remove a laser
@@ -277,7 +287,7 @@ local function laserabm(pos, colour)
 	else
 		local dir = get_direction("mesecons_extrawires:mese_powered", pos)
 		if dir then
-			laserstrahl(pos, "laser:"..colour, dir)
+			laserstrahl(pos, colour, dir)
 			--minetest.sound_play("laser", {pos = pos,  gain = 1})
 		end
 	end
@@ -313,7 +323,7 @@ local function after_destruct_bob(pos, colour)
 		-- don't remove the laser if the bobblock became punched
 		return
 	end
-	local dirs = get_directions_laser("laser:"..colour, pos)
+	local dirs = get_directions_laser("laser:laser", pos)
 	for _,dir in pairs(dirs) do
 		luftstrahl(pos, dir, colour)
 	end
@@ -333,44 +343,49 @@ for i = 1, #b do
 	b[4] = 0.5 / texture_scale
 end
 
+--~ for colour,hx in pairs(colours) do
+
+
+-- registers a laser node
+
+-- [[
+--~ local texture = "laser_white.png^[transformR90"
+--~ if colour ~= "white" then
+	--~ texture = texture.."^[colorize:"..hx..":alpha"
+--~ end--]]
+
+local name = "laser:laser"
+minetest.register_node(name, {
+	description = "laser",
+	tiles = {"laser_white.png^[transformR90"},
+	--tiles = {"laser_"..colour..".png^[transformR90"},
+	light_source = 15,
+	sunlight_propagates = true,
+	walkable = false,
+	--~ pointable = false,
+	diggable = false,
+	drop = "",
+	drawtype = "nodebox",
+	paramtype = "light",
+	paramtype2 = "colorfacedir",
+	palette = "laser_palette.png",
+	use_texture_alpha = true,
+	damage_per_second = laser_damage,
+	groups = laser_groups,
+	visual_scale = texture_scale,
+	node_box = node_box,
+	sounds =  default.node_sound_leaves_defaults(),
+	-- {-0.5, -0.1, -0.1, 0.5, 0.1, 0.1}, {-0.1, -0.5, -0.1, 0.1, 0.5, 0.1},
+	on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
+		minetest.set_node(pos, {name = "laser:laser", param2 = node.param2 + 1})
+	end,
+})
+
+if mesecon.register_mvps_stopper then
+	mesecon.register_mvps_stopper(name)
+end
+
 for colour,hx in pairs(colours) do
-
-
-	-- registers a laser node
-
-	-- [[
-	local texture = "laser_white.png^[transformR90"
-	if colour ~= "white" then
-		texture = texture.."^[colorize:"..hx..":alpha"
-	end--]]
-
-	local name = "laser:"..colour
-	minetest.register_node(name, {
-		description = colour.." laser",
-		tiles = {texture},
-		--tiles = {"laser_"..colour..".png^[transformR90"},
-		light_source = 15,
-		sunlight_propagates = true,
-		walkable = false,
-		pointable = false,
-		diggable = false,
-		drop = "",
-		drawtype = "nodebox",
-		paramtype = "light",
-		paramtype2 = "facedir",
-		use_texture_alpha = true,
-		damage_per_second = laser_damage,
-		groups = laser_groups,
-		visual_scale = texture_scale,
-		node_box = node_box,
-		sounds =  default.node_sound_leaves_defaults(),
-		-- {-0.5, -0.1, -0.1, 0.5, 0.1, 0.1}, {-0.1, -0.5, -0.1, 0.1, 0.5, 0.1},
-	})
-
-	if mesecon.register_mvps_stopper then
-		mesecon.register_mvps_stopper(name)
-	end
-
 
 	--Bob Blocks (redefinitions)
 
@@ -412,7 +427,7 @@ end
 local function is_touched_by_laser(pos, dir)
 	dir = dir_tab[dir]
 	for colour in pairs(colours) do
-		local lasers = get_directions_laser("laser:"..colour, pos, true)
+		local lasers = get_directions_laser("laser:laser", pos, true)
 		if lasers[1] then
 			for _,dir2 in pairs(lasers) do
 				if dir ~= dir2 then
@@ -486,13 +501,13 @@ minetest.register_node("laser:mirror", {
 	paramtype2 = "facedir",
 	laser = {
 		emitter = true,
-		enable = function(pos, dir, name)
+		enable = function(pos, dir, colour)
 			local par2 = minetest.get_node(pos).param2
 			local next_dir = mirror_data[par2][dir]
 			if not next_dir then
 				return
 			end
-			laserstrahl(pos, name, next_dir)
+			laserstrahl(pos, colour, next_dir)
 		end,
 		disable = function(pos, dir, colour)
 			local par2 = minetest.get_node(pos).param2
